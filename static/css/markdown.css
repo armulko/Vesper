@@ -1,0 +1,62 @@
+/* ─── MARKDOWN ──────────────────────────────────────────── */
+.message-content strong { color: var(--text); font-weight: 600; }
+.message.user .message-content strong { color: var(--text); }
+
+.action-text { color: var(--text-2); font-style: italic; }
+.message.user .action-text { color: var(--text-2); }
+
+.markdown-italic {
+    font-style: italic;
+    color: var(--text-2);
+}
+
+.markdown-bold-italic {
+    font-style: italic;
+    color: var(--gold-light);
+}
+
+.markdown-strike {
+    text-decoration: line-through;
+    color: var(--text-2);
+}
+
+.markdown-quote {
+    display: block;
+    padding: 0.3rem 0 0.3rem 0.6rem;
+    border-left: 2px solid var(--gold-border);
+    color: var(--gold-light);
+    font-style: italic;
+}
+
+.msg-body {
+    word-break: normal;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+/* ─── OOC CMD ───────────────────────────────────────────── */
+.ooc-cmd {
+    display: block;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border);
+    font-size: var(--text-xs);
+    font-style: italic;
+    color: var(--violet);
+    letter-spacing: 0.02rem;
+}
+
+@keyframes tokenAppear {
+    from {
+        opacity: 0;
+        filter: blur(2px);
+    }
+    to {
+        opacity: 1;
+        filter: blur(0);
+    }
+}
+
+.token-appear {
+    animation: tokenAppear 0.18s ease-out forwards;
+}

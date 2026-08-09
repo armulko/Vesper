@@ -1,0 +1,75 @@
+{# templates/partials/_chat.html #}
+{# Main chat view: message list, composer, chat header actions. #}
+    <div id="chatView" class="view active">
+      <div class="chat-container">
+
+        <div class="chat-header" id="chatHeader">
+          <div class="chat-header-left">
+            <div class="chat-char-avatar-wrap">
+              <div class="chat-char-avatar" id="chatCharAvatar" onclick="openAvatarModal()"></div>
+            </div>
+            <div class="chat-char-info">
+              <div class="chat-char-name" id="chatCharName">Select a character</div>
+              <div class="chat-char-mood" id="chatCharMood"></div>
+            </div>
+          </div>
+          <div class="chat-header-right">
+            <button class="chat-header-btn hidden" id="summaryBrowserBtn" onclick="openSummaryBrowser()" title="Summaries" style="position:relative">
+              <img src="/static/icons/summarize.svg" alt="summaries">
+              <span class="summary-browser-badge" id="summaryBrowserBadge"></span>
+            </button>
+            <button class="chat-header-btn" id="notesToggleBtn" onclick="toggleNotesPanel()" title="Character notes">
+              <img src="/static/icons/edit.svg" alt="notes">
+            </button>
+            <button class="chat-header-btn" id="clearHistoryBtn" onclick="clearChatHistory()">
+              <img src="/static/icons/trash.svg" alt="clear">
+            </button>
+            <button class="chat-header-btn desktop-only" onclick="switchView('modelSwitch')" title="Model settings">
+              <img src="/static/icons/settings.svg" alt="settings">
+            </button>
+          </div>
+        </div>
+
+        <div class="token-counter-bar" id="tokenCounter" style="display:none">
+          <span class="token-label">ctx</span>
+          <div class="token-track"><div class="token-fill" id="tokenFill"></div></div>
+          <span class="token-count" id="tokenCountText"></span>
+        </div>
+
+        <div class="notes-panel hidden" id="notesPanel">
+          <div class="notes-panel-header">
+            <span class="notes-panel-title">Character notes</span>
+            <div class="notes-panel-actions">
+              <button class="notes-action-btn" onclick="toggleNotesPanel()" title="Close">
+                <svg width="12" height="12" viewBox="0 0 14 14"><use href="#icon-close"/></svg>
+              </button>
+            </div>
+          </div>
+          <textarea id="characterNotesInput" placeholder="Persistent notes about this character — injected into every prompt…"></textarea>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+          <div class="chat-messages-inner" id="chatMessagesInner">
+            <div id="chatEmptyState"></div>
+          </div>
+        </div>
+
+        <div class="chat-input-area">
+          <div class="input-wrapper">
+            <textarea id="userInput" placeholder="Write a message…" rows="1"></textarea>
+            <div class="input-actions">
+              <button id="suggestBtn" class="input-btn input-btn-suggest" title="Suggest reply">
+                <img src="/static/icons/suggest.svg" alt="suggest">
+              </button>
+              <button id="stopBtn"   class="input-btn hidden" title="Stop">
+                <svg width="12" height="12" viewBox="0 0 14 14"><use href="#icon-stop"/></svg>
+              </button>
+              <button id="sendBtn"   class="input-btn input-btn-send" title="Send">
+                <svg width="14" height="14" viewBox="0 0 14 14"><use href="#icon-send"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>

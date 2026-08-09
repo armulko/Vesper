@@ -1,0 +1,39 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="64" height="64" rx="16" fill="url(#bg)" />
+
+  <!-- Inner glow -->
+  <rect width="64" height="64" rx="16" fill="url(#innerGlow)" />
+
+  <!-- Center symbol -->
+  <path d="M32 20 L36 28 L44 32 L36 36 L32 44 L28 36 L20 32 L28 28 Z"
+        fill="#fff6e8"
+        opacity="0.95"/>
+
+  <!-- Soft glow around symbol -->
+  <circle cx="32" cy="32" r="10" fill="url(#symbolGlow)" />
+
+  <defs>
+    <!-- Background gradient (gold → darker) -->
+    <linearGradient id="bg" x1="0" y1="0" x2="64" y2="64">
+      <stop offset="0%" stop-color="#d4b892"/>
+      <stop offset="100%" stop-color="#6e5a3e"/>
+    </linearGradient>
+
+    <!-- Inner vignette -->
+    <radialGradient id="innerGlow" cx="0" cy="0" r="1"
+      gradientUnits="userSpaceOnUse"
+      gradientTransform="translate(32 32) scale(40)">
+      <stop stop-color="#c8a97e" stop-opacity="0.25"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.4"/>
+    </radialGradient>
+
+    <!-- Symbol glow -->
+    <radialGradient id="symbolGlow" cx="0" cy="0" r="1"
+      gradientUnits="userSpaceOnUse"
+      gradientTransform="translate(32 32) scale(12)">
+      <stop stop-color="#c8a97e" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#c8a97e" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+</svg>

@@ -1,0 +1,122 @@
+{# templates/partials/_modals.html #}
+{# Overlay + all modal dialogs: confirm/delete, custom alert, avatar viewer/generator, summarize, summary browser. #}
+
+
+<!-- ═══════════════════════════════════════
+     OVERLAYS & MODALS
+═══════════════════════════════════════ -->
+
+<!-- Dim overlay (sidebar on mobile / drawers) -->
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- Confirm: delete character -->
+<div class="confirm-modal" id="confirmModal">
+  <div class="confirm-content">
+    <div class="confirm-title">Are you sure?</div>
+    <div class="confirm-text">This will permanently remove the character and their chat history.</div>
+    <div class="confirm-buttons">
+      <button class="confirm-btn confirm-no"  onclick="closeConfirm()">Cancel</button>
+      <button class="confirm-btn confirm-yes" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Custom alert -->
+<div class="confirm-modal" id="customAlert">
+  <div class="confirm-content">
+    <div class="confirm-text" id="customAlertText">Message</div>
+    <div class="confirm-buttons">
+      <button class="confirm-btn confirm-yes" onclick="closeCustomAlert()">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- Avatar fullscreen view -->
+<div class="avatar-modal" id="avatarModal" onclick="closeAvatarModal()">
+  <img id="avatarModalImage" src="" alt="Avatar">
+</div>
+
+<!-- Avatar generator modal -->
+<div class="avatar-generator-modal" id="avatarGeneratorModal">
+  <div class="avatar-generator-content">
+
+    <div class="avatar-generator-header">
+      <span class="avatar-generator-title">Avatar generator</span>
+      <button class="avatar-generator-close" onclick="closeAvatarGenerator()">
+        <svg width="14" height="14" viewBox="0 0 14 14"><use href="#icon-close"/></svg>
+      </button>
+    </div>
+
+    <div class="avatar-generator-body">
+
+      <div class="avatar-preview-section">
+        <div class="avatar-preview-label">Preview</div>
+        <div class="avatar-preview-image" id="generatorPreview">
+          <div class="image-preview-placeholder">Empty</div>
+        </div>
+        <div class="avatar-progress-container hidden" id="avatarProgressContainer">
+          <div class="avatar-progress-bar">
+            <div class="avatar-progress-fill" id="avatarProgressFill"></div>
+          </div>
+          <div class="avatar-progress-text" id="avatarProgressText">0 / 8</div>
+        </div>
+      </div>
+
+      <div class="avatar-type-section">
+        <div class="avatar-type-label">Frame type</div>
+        <div class="avatar-type-buttons">
+          <button class="avatar-type-btn active" data-type="portrait"  onclick="selectAvatarType('portrait')">
+            <svg width="14" height="14" viewBox="0 0 14 14"><use href="#icon-portrait"/></svg>
+            Portrait
+          </button>
+          <button class="avatar-type-btn"         data-type="fullbody" onclick="selectAvatarType('fullbody')">
+            <svg width="14" height="14" viewBox="0 0 14 14"><use href="#icon-fullbody"/></svg>
+            Full body
+          </button>
+        </div>
+      </div>
+
+      <div class="avatar-prompt-section">
+        <label class="avatar-prompt-label">Description</label>
+        <textarea class="avatar-prompt-input" id="avatarPrompt" placeholder="Describe the character's appearance…"></textarea>
+      </div>
+
+      <button class="avatar-generate-btn" id="generateAvatarBtn" onclick="generateAvatar()">Generate</button>
+      <button class="avatar-apply-btn hidden" id="applyAvatarBtn" onclick="applyGeneratedAvatar()">Apply</button>
+
+    </div>
+  </div>
+</div>
+
+<!-- Summarize modal -->
+<div class="summarize-modal" id="summarizeModal">
+  <div class="summarize-content">
+    <div class="summarize-header">
+      <span>Summarize history</span>
+      <span class="summarize-sub">streaming via LLM</span>
+    </div>
+    <div class="summarize-body" id="summarizeBody">
+      <div class="loading"><span></span><span></span><span></span></div>
+    </div>
+    <div class="summarize-buttons" id="summarizeButtons" style="display:none">
+      <button class="confirm-btn confirm-no"  id="summarizeCancelBtn">Cancel</button>
+      <button class="confirm-btn confirm-yes" id="summarizeApplyBtn">Apply</button>
+    </div>
+    <div class="summarize-buttons" id="summarizeCancelOnly">
+      <button class="confirm-btn confirm-no" id="summarizeCancelOnlyBtn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Summary browser modal -->
+<div class="confirm-modal" id="summaryBrowserModal">
+  <div class="summary-browser-content">
+    <div class="confirm-title">Summaries</div>
+    <div class="summary-browser-list" id="summaryBrowserList"></div>
+    <div class="confirm-buttons">
+      <button class="confirm-btn confirm-yes" onclick="metaSummarize()">Merge into meta-summary</button>
+      <button class="confirm-btn confirm-no" onclick="closeSummaryBrowser()">Close</button>
+    </div>
+  </div>
+</div>
+

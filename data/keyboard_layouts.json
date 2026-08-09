@@ -1,0 +1,226 @@
+{
+  "_comment": "Каждая раскладка — строка длиной 33 символа, позиция = физическая клавиша на QWERTY-корпусе (US ANSI). Порядок клавиш: ряд qwerty (Q..]), ряд asdf (A..'), ряд zxcv (Z../). Строчные и заглавные — отдельные слои.",
+  "_key_order": [
+    "q",
+    "w",
+    "e",
+    "r",
+    "t",
+    "y",
+    "u",
+    "i",
+    "o",
+    "p",
+    "[",
+    "]",
+    "a",
+    "s",
+    "d",
+    "f",
+    "g",
+    "h",
+    "j",
+    "k",
+    "l",
+    ";",
+    "'",
+    "z",
+    "x",
+    "c",
+    "v",
+    "b",
+    "n",
+    "m",
+    ",",
+    ".",
+    "/"
+  ],
+  "layouts": {
+    "en": {
+      "name": "English (QWERTY)",
+      "reversible": true,
+      "lower": "qwertyuiop[]asdfghjkl;'zxcvbnm,./",
+      "upper": "QWERTYUIOP{}ASDFGHJKL:\"ZXCVBNM<>?"
+    },
+    "en_dvorak": {
+      "name": "English (Dvorak)",
+      "reversible": true,
+      "lower": "',.pyfgcrl/=aoeuidhtns-;qjkxbmwvz",
+      "upper": "\"<>PYFGCRL?+AOEUIDHTNS_:QJKXBMWVZ"
+    },
+    "en_colemak": {
+      "name": "English (Colemak)",
+      "reversible": true,
+      "lower": "qwfpgjluy;[]arstdhneio'zxcvbkm,./",
+      "upper": "QWFPGJLUY:{}ARSTDHNEIO\"ZXCVBKM<>?"
+    },
+    "en_colemak_dh": {
+      "name": "English (Colemak-DH)",
+      "reversible": true,
+      "lower": "qwfpbjluy;[]arstgkneio'zxcvdm,./~",
+      "upper": "QWFPBJLUY:{}ARSTGKNEIO\"ZXCVDM<>?`"
+    },
+    "en_workman": {
+      "name": "English (Workman)",
+      "reversible": true,
+      "lower": "qdrwbjfup;[]ashtgyneoi'zxmcvkl,./",
+      "upper": "QDRWBJFUP:{}ASHTGYNEOI\"ZXMCVKL<>?"
+    },
+    "en_norman": {
+      "name": "English (Norman)",
+      "reversible": true,
+      "lower": "qwdfkjurl;[]asetgynioh'zxcvbpm,./",
+      "upper": "QWDFKJURL:{}ASETGYNIOH\"ZXCVBPM<>?"
+    },
+    "ru": {
+      "name": "Русский (ЙЦУКЕН)",
+      "reversible": true,
+      "lower": "йцукенгшщзхъфывапролджэячсмитьбю.",
+      "upper": "ЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮ,"
+    },
+    "ru_phonetic": {
+      "name": "Русский (Фонетическая / ЯВЕРТЫ)",
+      "reversible": false,
+      "lower": "явертыуиопшщжшсдфгхйклзьэцчбнм,./",
+      "upper": "ЯВЕРТЫУИОПШЩЖШСДФГХЙКЛЗЬЭЦЧБНМ<>?"
+    },
+    "uk": {
+      "name": "Українська (ЙЦУКЕН)",
+      "reversible": true,
+      "lower": "йцукенгшщзхїфівапролджєячсмитьбю.",
+      "upper": "ЙЦУКЕНГШЩЗХЇФІВАПРОЛДЖЄЯЧСМИТЬБЮ,"
+    },
+    "be": {
+      "name": "Беларуская (ЙЦУКЕН)",
+      "reversible": true,
+      "lower": "йцукенгшўзх'фывапролджэячсмитьбю.",
+      "upper": "ЙЦУКЕНГШЎЗХ\"ФЫВАПРОЛДЖЭЯЧСМИТЬБЮ,"
+    },
+    "bg": {
+      "name": "Български (БДС 5237:1978)",
+      "reversible": false,
+      "lower": "уеишщксдзцйтяъаожгтнвмчсюфхпрлб.-",
+      "upper": "УЕИШЩКСДЗЦЙТЯЪАОЖГТНВМЧСЮФХПРЛБ_:"
+    },
+    "bg_phonetic": {
+      "name": "Български (Фонетична, Traditional / KLID 00040402)",
+      "reversible": true,
+      "lower": "явертъуиопшщасдфгхйкл;'зьцжбнм,./",
+      "upper": "ЯВЕРТЪУИОПШЩАСДФГХЙКЛ;'ЗЬЦЖБНМ,./"
+    },
+    "kk": {
+      "name": "Қазақша (Kazakh)",
+      "reversible": true,
+      "lower": "йўүкеңғшщзхъфывапролджэячсмитьбю.",
+      "upper": "ЙЎҮКЕҢҒШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮ,"
+    },
+    "sr": {
+      "name": "Српски (Serbian Cyrillic)",
+      "reversible": true,
+      "lower": "љњертзуиопшђасдфгхјклчћжџцвбнм,./",
+      "upper": "ЉЊЕРТЗУИОПШЂАСДФГХЈКЛЧЋЖЏЦВБНМ<>?"
+    },
+    "de": {
+      "name": "Deutsch (QWERTZ)",
+      "reversible": true,
+      "lower": "qwertzuiopü+asdfghjklöäyxcvbnm,.-",
+      "upper": "QWERTZUIOPÜ*ASDFGHJKLÖÄYXCVBNM;:_"
+    },
+    "fr": {
+      "name": "Français (AZERTY)",
+      "reversible": true,
+      "lower": "azertyuiop$^qsdfghjklmùwxcvbn,;:-",
+      "upper": "AZERTYUIOP¨£QSDFGHJKLM%WXCVBN?./_"
+    },
+    "fr_bepo": {
+      "name": "Français (BÉPO)",
+      "reversible": false,
+      "lower": "bérpoèvcujz^aqieusrgytwsàxyk'qghf",
+      "upper": "BÉRPOÈVCUJZ¨AQIEUSRGYTWSÀXYK\"QGHF"
+    },
+    "es": {
+      "name": "Español (QWERTY)",
+      "reversible": true,
+      "lower": "qwertyuiop`+asdfghjklñ'zxcvbnm,.-",
+      "upper": "QWERTYUIOP^*ASDFGHJKLÑ\"ZXCVBNM;:_"
+    },
+    "it": {
+      "name": "Italiano (QWERTY)",
+      "reversible": true,
+      "lower": "qwertyuiopè+asdfghjklòàzxcvbnm,.-",
+      "upper": "QWERTYUIOPé*ASDFGHJKLç°ZXCVBNM;:_"
+    },
+    "pt_br": {
+      "name": "Português (Brasil ABNT2)",
+      "reversible": true,
+      "lower": "qwertyuiop´[asdfghjklç~zxcvbnm,.;",
+      "upper": "QWERTYUIOP`{ASDFGHJKLÇ^ZXCVBNM<>:"
+    },
+    "pl": {
+      "name": "Polski (Programisty)",
+      "reversible": true,
+      "lower": "qwertyuiop[]asdfghjkl;'zxcvbnm,./",
+      "upper": "QWERTYUIOP{}ASDFGHJKL:\"ZXCVBNM<>?"
+    },
+    "nordic": {
+      "name": "Svenska / Norsk / Dansk",
+      "reversible": true,
+      "lower": "qwertyuiopå¨asdfghjkløæzxcvbnm,.-",
+      "upper": "QWERTYUIOPÅ^ASDFGHJKLØÆZXCVBNM;:_"
+    },
+    "tr_q": {
+      "name": "Türkçe (Q)",
+      "reversible": true,
+      "lower": "qwertyuıopğüasdfghjklşizxcvbnmöç.",
+      "upper": "QWERTYUIOPĞÜASDFGHJKLŞİZXCVBNMÖÇ:"
+    },
+    "tr_f": {
+      "name": "Türkçe (F)",
+      "reversible": false,
+      "lower": "fgğıodrnhpqwueaıtkmlyşizjvcöhbç.-",
+      "upper": "FGĞIODRNHPQWUEAITKMLYŞİZJVCÖHBÇ_:"
+    },
+    "cs": {
+      "name": "Čeština (QWERTZ)",
+      "reversible": true,
+      "lower": "qwertzuiopú)asdfghjklů§yxcvbnm,.-",
+      "upper": "QWERTZUIOP(/ASDFGHJKL\"|YXCVBNM?:_"
+    },
+    "hu": {
+      "name": "Magyar (Hungarian QWERTZ)",
+      "reversible": true,
+      "lower": "qwertzuiopőúasdfghjkléáyxcvbnm,.-",
+      "upper": "QWERTZUIOPŐÚASDFGHJKLÉÁYXCVBNM?:_"
+    },
+    "he": {
+      "name": "עברית (Hebrew)",
+      "reversible": false,
+      "lower": "/'קשתרךףןםפ[]שדגכעיחלךף,זסבהנמצת.",
+      "upper": "QWERTYUIOP{}ASDFGHJKL:\"ZXCVBNM<>?"
+    },
+    "el": {
+      "name": "Ελληνικά (Greek)",
+      "reversible": false,
+      "lower": ";ειρθυιοπ[]ασδφγηξκλ´'ζχψβνμ,./~-",
+      "upper": ":ΕΙΡΘΥΙΟΠ{}ΑΣΔΦΓΗΞΚΛ¨\"ΖΧΨΒΝΜ<>?`_"
+    },
+    "uk_phonetic": {
+      "name": "Українська (Фонетична / ЯВЕРТИ)",
+      "reversible": false,
+      "lower": "чшертиуіопяїасдфґгйклжщзхцвбнм,.ь",
+      "upper": "ЧШЕРТИУІОПЯЇАСДФҐГЙКЛЖЩЗХЦВБНМ,.Ь"
+    },
+    "ro": {
+      "name": "Română (Standard)",
+      "reversible": true,
+      "lower": "qwertyuiopăîasdfghjklșțzxcvbnm;,â",
+      "upper": "QWERTYUIOPĂÎASDFGHJKLȘȚZXCVBNM:<Â"
+    },
+    "ar": {
+      "name": "العربية (Arabic 101)",
+      "reversible": false,
+      "lower": "ضصثقفغعهخحج]شسيبلاتنمكذئءؤرﻻىةوزظ",
+      "upper": "ًٌَُفغعهخحج]ٍِيبلاتنمكذئْؤرﻻىة،ز؟"
+    }
+  }
+}

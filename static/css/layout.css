@@ -1,0 +1,516 @@
+/* ═══════════════════════════════════════════════════
+   VESPER — Layout
+   App shell, sidebar, bottom nav, mobile topbar,
+   view switching. No component styles here.
+═══════════════════════════════════════════════════ */
+
+/* ── App shell ── */
+.app-container {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+/* ── Main content area ── */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative; /* anchors the absolutely-positioned .view during transitions */
+  background: var(--bg);
+}
+
+
+/* ── Views ──
+   display:none/flex can't be transitioned, so switching used to be an
+   instant hard cut. Every .view now stays in flex layout at all times;
+   visibility is driven by opacity + a small vertical offset, with
+   pointer-events/visibility toggled so the hidden view can't be
+   clicked or tabbed into. .view-leaving plays the outgoing view back
+   out; ui.js adds it right before swapping .active so both views
+   briefly cross-fade instead of popping. */
+.view {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  flex-direction: column;
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-sticky); /* sits above .main-content::before's decorative pattern */
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(16px);
+  transition:
+    opacity var(--dur) var(--ease),
+    transform var(--dur) var(--ease),
+    visibility 0s linear var(--dur);
+}
+
+.view.active {
+  position: relative;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: none;
+  transition:
+    opacity var(--dur-drawer) var(--ease-spring),
+    transform var(--dur-drawer) var(--ease-spring);
+}
+
+.view.view-leaving {
+  position: absolute;
+  opacity: 0;
+  transform: translateY(-16px);
+  visibility: visible;
+  pointer-events: none;
+  transition:
+    opacity var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+}
+
+/* ── View container (non-chat views) ── */
+.view-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.view-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-1);
+  flex-shrink: 0;
+}
+
+.view-title {
+  font-family: var(--font-serif);
+  font-size: var(--text-xl);
+  font-weight: 400;
+  letter-spacing: var(--tracking-wide);
+  color: var(--text);
+}
+
+.view-back-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    border-color var(--dur) var(--ease),
+    color var(--dur) var(--ease),
+    background var(--dur) var(--ease);
+}
+
+.view-back-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.view-back-btn:hover {
+  border-color: var(--border-2);
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.view-header-action {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-wide);
+  transition:
+    border-color var(--dur) var(--ease),
+    color var(--dur) var(--ease),
+    background var(--dur) var(--ease);
+}
+
+.view-header-action:hover {
+  border-color: var(--gold-border);
+  color: var(--gold);
+  background: var(--gold-dim);
+}
+
+.view-header-action svg {
+  width: 10px;
+  height: 10px;
+  vertical-align: -1px;
+}
+
+.view-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+
+/* ═══════════════════════════════════════════════════
+   SIDEBAR (desktop)
+═══════════════════════════════════════════════════ */
+.sidebar {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-1);
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+  z-index: var(--z-sticky);
+  transition: transform var(--dur-drawer) var(--ease-spring);
+}
+
+/* Brand */
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-5) var(--space-4);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.sidebar-logo-mark {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-gold);
+}
+
+.sidebar-logo-mark svg {
+  width: 15px;
+  height: 15px;
+}
+
+.sidebar-logo-text {
+  font-family: var(--font-serif);
+  font-size: var(--text-xl);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  color: var(--text);
+}
+
+.sidebar-logo-text em {
+  font-style: italic;
+  color: var(--gold);
+}
+
+/* Nav */
+.sidebar-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.sidebar-tab {
+  flex: 1;
+  padding: var(--space-3) 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition:
+    color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+
+.sidebar-tab:hover {
+  color: var(--text-2);
+}
+
+.sidebar-tab.active {
+  color: var(--gold);
+  border-bottom-color: var(--gold);
+}
+
+.sidebar-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-3) var(--space-4);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+  transition: border-color var(--dur) var(--ease);
+}
+
+.sidebar-search:focus-within {
+  border-color: var(--border-2);
+}
+
+.sidebar-search-icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  /* ships black — invert to sit at roughly --text-muted brightness on the
+     dark surface, same trick used for the other icon-set SVGs */
+  filter: invert(1) opacity(0.55);
+  transition: filter var(--dur) var(--ease);
+}
+
+.sidebar-search:focus-within .sidebar-search-icon {
+  /* the old glyph inherited color: var(--text-muted) automatically on
+     focus via the parent's border-color transition; an <img> needs an
+     explicit nudge instead since filter can't just inherit a CSS color */
+  filter: invert(1) opacity(0.8);
+}
+
+.sidebar-search input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: var(--tracking-wide);
+  color: var(--text);
+}
+
+.sidebar-search input::placeholder {
+  color: var(--text-muted);
+}
+
+.sidebar-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.tab-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+}
+
+.tab-label {
+  flex: 1;
+}
+
+/* Footer */
+.sidebar-footer {
+  position: sticky;
+  bottom: 0;
+
+  padding: var(--space-3) var(--space-2) var(--space-4);
+  border-top: 1px solid var(--border);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+
+  background: var(--surface-1);
+  z-index: 5;
+}
+
+.sidebar-secondary-btn {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  background: transparent;
+  border: 1.5px dashed var(--gold-border);
+  border-radius: var(--radius-md);
+  color: var(--text-2);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.sidebar-secondary-btn:hover {
+  background: var(--gold-dim);
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.sidebar-secondary-btn svg {
+  width: 11px;
+  height: 11px;
+  vertical-align: -1px;
+}
+
+/* ═══════════════════════════════════════════════════
+   BOTTOM NAV (mobile)
+═══════════════════════════════════════════════════ */
+.bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--surface-1);
+  border-top: 1px solid var(--border);
+  z-index: var(--z-overlay);
+  align-items: flex-start;
+  padding-top: var(--space-2);
+}
+
+.nav-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: var(--space-1) 0;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+}
+
+.nav-btn img {
+  filter: var(--icon-filter-nav-idle);
+  transition: filter var(--dur) var(--ease);
+}
+
+.nav-btn.active img {
+  filter: var(--icon-filter-nav-active);
+}
+
+.nav-icon {
+  font-size: 19px;
+  line-height: 1;
+  transition: filter var(--dur) var(--ease);
+}
+
+.nav-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: var(--tracking-wider);
+}
+
+.nav-btn.active {
+  color: var(--gold);
+}
+
+.nav-btn.active .nav-icon {
+  filter: drop-shadow(0 0 6px var(--gold-glow));
+}
+
+
+/* ═══════════════════════════════════════════════════
+   OVERLAY (mobile sidebar dim)
+═══════════════════════════════════════════════════ */
+.overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  z-index: calc(var(--z-overlay) - 1);
+  opacity: 0;
+  pointer-events: none;
+  /* matches .sidebar's transform timing/easing so the drawer and its dim
+     move in lockstep instead of drifting apart by ~20ms + a different
+     curve shape */
+  transition: opacity var(--dur-drawer) var(--ease-drawer);
+}
+
+.overlay.visible {
+  pointer-events: auto;
+}
+
+
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════════ */
+
+/* Mobile: < 768px */
+@media (max-width: 767px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    transform: translateX(-100%);
+    z-index: var(--z-drawer);
+    /* sidebar-w on mobile is a bit narrower */
+    width: min(var(--sidebar-w), 85vw);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .overlay {
+    display: block;
+  }
+
+  .mobile-topbar {
+    display: flex;
+  }
+
+  .bottom-nav {
+    display: flex;
+  }
+
+  /* Push content above bottom nav */
+  .main-content {
+    padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Hide desktop-only things on mobile */
+  .desktop-only {
+    display: none !important;
+  }
+}
+
+/* Desktop: >= 768px */
+@media (min-width: 768px) {
+  .mobile-topbar {
+    display: none;
+  }
+
+  .bottom-nav {
+    display: none;
+  }
+
+  .overlay {
+    display: none !important;
+  }
+
+  .mobile-only {
+    display: none !important;
+  }
+}
+
+/* Wide desktop: give sidebar a bit more breathing room */
+@media (min-width: 1200px) {
+  :root {
+    --sidebar-w: 268px;
+  }
+}

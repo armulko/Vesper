@@ -1,0 +1,931 @@
+/* ═══════════════════════════════════════════════════
+   VESPER — Character Editor
+   Character/persona grid (sidebar + load views) and the
+   two-column character form layout.
+   Split out of components.css (2nd great refactoring).
+═══════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════
+   CHARACTER / PERSONA GRID
+═══════════════════════════════════════════════════ */
+.character-grid {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--space-3);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  align-content: start;
+}
+
+.character-card {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-3);
+  cursor: pointer;
+  text-align: center;
+  position: relative;
+  transition:
+    border-color var(--dur) var(--ease),
+    background var(--dur) var(--ease),
+    transform var(--dur) var(--ease-spring),
+    box-shadow var(--dur) var(--ease);
+}
+
+.character-card:hover {
+  border-color: var(--neutral-border);
+  background: var(--neutral-dim);
+  transform: translateY(-3px) scale(1.015);
+  box-shadow: var(--shadow-md);
+}
+
+/* ── Stagger-in for grid cards (character/persona lists) ──
+   Same mechanism as the chat message reveal (see chat.css) — paused
+   animation flipped to running via a container class, restarted reliably
+   with a remove/reflow/re-add cycle from JS since re-adding an
+   already-present class is a no-op to the browser.
+
+   Two different entry geometries depending on which container the cards
+   are in:
+   - .character-grid (the mobile Load/LoadPersona tab): a real 2-column
+     grid, so cards in the left column fly in from the left and the right
+     column from the right — matches the physical side each card already
+     sits on, rather than everything crossing the same direction and
+     clipping past its neighbour.
+   - .sidebar-list (the desktop slide-out panel): visually a single side
+     panel entering from the left edge of the screen regardless of its
+     internal 2-column layout, so every card enters from the left — a
+     right-originating card here would fly in from off-panel, which reads
+     as wrong given the panel itself is a left-edge element.
+   nth-child(odd/even) determines the grid's left/right split — reliable
+   here because .character-grid always renders a full card list via
+   innerHTML in one shot (see renderCharacterCards), never with cards
+   interleaved with non-card siblings that would throw off the parity. */
+.character-card.card-stagger-in {
+  animation-play-state: paused;
+}
+
+.character-grid .character-card.card-stagger-in {
+  animation-name: cardSlideInLeft;
+  animation-duration: var(--dur);
+  animation-timing-function: var(--ease-spring);
+  animation-fill-mode: both;
+}
+
+.character-grid .character-card.card-stagger-in:nth-child(even) {
+  animation-name: cardSlideInRight;
+}
+
+.sidebar-list .character-card.card-stagger-in {
+  animation-name: cardSlideInLeft;
+  animation-duration: var(--dur);
+  animation-timing-function: var(--ease-spring);
+  animation-fill-mode: both;
+}
+
+.character-grid.stagger-play .character-card.card-stagger-in,
+.sidebar-list.stagger-play .character-card.card-stagger-in {
+  animation-play-state: running;
+  animation-delay: calc(var(--stagger-i, 0) * 18ms);
+}
+
+@keyframes cardSlideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-26px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes cardSlideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(26px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.character-card:active {
+  transform: translateY(-1px) scale(1);
+  transition: transform var(--dur-fast) var(--ease-in);
+}
+
+.character-card.active-char,
+.character-card.selected-persona {
+  border-color: var(--gold-border);
+  background: var(--gold-dim);
+  box-shadow: 0 0 0 1px var(--gold-dim);
+}
+
+.character-card .image-preview {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto var(--space-3);
+  font-size: 24px;
+}
+
+.character-card .char-name {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.character-card .char-desc {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-top: var(--space-1);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  line-clamp: 2;
+}
+
+/* Card action buttons (edit / delete) */
+.character-actions {
+    position: absolute;
+    top: var(--space-2);
+    right: var(--space-2);
+    display: flex;
+    gap: var(--space-1);
+    opacity: 0;
+    transition: opacity var(--dur) var(--ease);
+}
+
+.character-card:hover .character-actions {
+    opacity: 1;
+}
+
+.action-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: var(--radius-sm);
+    background: var(--overlay-scrim);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1px solid var(--border-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition:
+        background var(--dur) var(--ease),
+        border-color var(--dur) var(--ease);
+}
+
+.action-btn img {
+    width: 13px;
+    height: 13px;
+    opacity: 0.75;
+    filter: brightness(0) var(--icon-filter-white);
+    transition: opacity var(--dur) var(--ease);
+}
+
+.action-btn:hover {
+    background: var(--neutral-hover);
+    border-color: var(--border-3);
+}
+
+.action-btn:hover img {
+    opacity: 1;
+}
+
+.delete-btn:hover {
+    background: var(--danger-dim);
+    border-color: var(--danger-border);
+}
+
+.delete-btn:hover img {
+    filter: brightness(0) saturate(100%) invert(60%) sepia(80%) saturate(400%) hue-rotate(310deg);
+    opacity: 1;
+}
+
+/* Empty grid state */
+.grid-full-center {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-12) 0;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.empty-state-icon {
+  font-size: 32px;
+  opacity: 0.4;
+}
+
+.empty-state-text {
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-wide);
+}
+
+
+/* ── Compact grid card + sidebar list (were misplaced under
+   the RESPONSIVE section in components.css) ── */
+
+  /* On mobile show card actions always */
+@media (max-width: 767px) {
+  .character-actions {
+    opacity: 1;
+  }
+}
+
+.character-card.compact {
+    padding: 12px;
+    border-radius: 16px;
+    text-align: center;
+    min-width: 0;
+}
+
+.character-card-avatar {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 8px;
+    border-radius: 50%;
+    overflow: hidden;
+}
+
+.character-card-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.character-card-desc {
+    font-size: 12px;
+    opacity: 0.7;
+    margin-top: 4px;
+}
+
+.sidebar-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.sidebar-list {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: var(--space-3);
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+    align-content: start;
+}
+
+
+/* ═══════════════════════════════════════════════════
+   CHARACTER FORM — two-column layout
+   Left rail (import/avatar/name/tokens) stays visible
+   while the right column of fields scrolls — the old
+   version stacked all of this into one long vertical
+   list with nothing to anchor the eye. Rail is sticky
+   only on desktop; stacks to a single column on mobile
+   since there's no spare width to split there anyway.
+═══════════════════════════════════════════════════ */
+.character-form-body {
+  /* The rail needs its own scroll boundary to be sticky against —
+     .view-body already scrolls, so let the grid fill it instead of
+     adding gap/padding meant for the old single-column list. */
+  padding: var(--space-6);
+}
+
+.character-form-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  align-items: start;
+  gap: var(--space-8);
+}
+
+.character-form-rail {
+  position: sticky;
+  top: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.character-form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0; /* grid children default to min-width:auto, which lets a
+                   long unbroken token in a textarea push the column wider
+                   than its track instead of wrapping/scrolling internally */
+}
+
+/* Avatar preview in the character/persona form, ~2x the shared
+   --avatar-xl (80px) base — a narrow 240px rail has room to make this the
+   visual anchor of the left column. Persona editor now shares the same
+   character-form-rail layout, so it gets the same treatment; the
+   generator modal still reuses the plain .image-preview class at its
+   default size and isn't affected by this. Also clickable (zoom modal,
+   see _openEditorAvatarModal) — cursor scoped here rather than on the
+   base .image-preview class since the generator modal's preview isn't
+   wired to open the modal. */
+#imagePreview,
+#personaImagePreview {
+  width: calc(var(--avatar-xl) * 2);
+  height: calc(var(--avatar-xl) * 2);
+  cursor: pointer;
+}
+
+@media (max-width: 767px) {
+  .character-form-body {
+    /* Horizontal padding tighter than vertical here on purpose — on a
+       360-400px phone screen every side-pixel eaten by padding is a pixel
+       the textarea doesn't get, and these fields are the whole point of
+       the view. Vertical breathing room doesn't cost the same. */
+    padding: var(--space-4) var(--space-2);
+  }
+
+  .character-form-layout {
+    grid-template-columns: 1fr;
+    gap: var(--space-5);
+  }
+
+  .character-form-rail {
+    position: static;
+  }
+
+  /* Description / First message are the two fields you're guaranteed to
+     fill in on every character — on a phone the shared 96px min-height
+     (sized for desktop, where auto-resize plus a big viewport hides it)
+     reads as a cramped 4-5 line box before you've typed anything. Bumping
+     just these two, not every .form-textarea, since the accordion fields
+     below are optional and fine staying compact by default. */
+  #characterDescription,
+  #characterFirstMes {
+    min-height: 192px;
+  }
+
+  /* overflow:hidden on .form-textarea/.field-textarea exists to stop desktop's
+     mouse-wheel-over-an-empty-textarea scroll capture — that's a mouse-specific
+     annoyance, touch scrolling doesn't have it. On mobile there's no JS
+     re-measure on rotation/viewport changes the auto-resize listens for, so
+     content can end up taller than the box with no way back in except this. */
+  .form-textarea,
+  .field-textarea {
+    overflow: auto;
+  }
+
+  /* Auto-grow still runs on mobile (same _autoResizeTextarea as desktop),
+     but uncapped it can push a long field past the bottom of a small
+     screen with no way back except manually deleting text. Cap the
+     auto-grown height here and let the overflow:auto above take over as
+     an internal scroll past that point — a full-height wall of empty
+     textarea isn't the goal, just enough room that typing doesn't feel
+     cramped. Scoped to :not([data-manually-resized="1"]) so this only
+     limits the *automatic* growth — once the user has dragged the handle
+     below, that's a deliberate choice and shouldn't get clipped back down
+     by this cap on the next keystroke. */
+  .form-textarea:not([data-manually-resized="1"]),
+  .field-textarea:not([data-manually-resized="1"]) {
+    max-height: 45vh;
+  }
+
+  /* Custom touch resize handle (see _bindMobileResizeHandle in characters.js).
+     Styling ::-webkit-resizer was a dead end: iOS Safari has never actually
+     implemented touch-drag on the native resize corner (confirmed bug since
+     Safari 3.1, 2008 — no CSS makes a nonexistent interaction work), and
+     Android support is too inconsistent to lean on either. This wrapper
+     replaces the native handle with a real DOM element driven by touch
+     events, so it's guaranteed to work the same everywhere on mobile. */
+  .textarea-resize-wrapper {
+    position: relative;
+  }
+
+  .textarea-resize-wrapper .form-textarea,
+  .textarea-resize-wrapper .field-textarea {
+    padding-bottom: var(--space-6); /* room so typed text never sits under the handle */
+  }
+
+  .textarea-resize-handle {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: none; /* let JS own the vertical drag instead of the page scrolling */
+    cursor: ns-resize;
+  }
+
+  /* Visual grip: three short dashes, wide and thumb-obvious rather than a
+     tiny corner triangle — this is the whole point of replacing the native
+     handle, so it shouldn't repeat the native handle's "easy to miss" flaw. */
+  .textarea-resize-handle::before {
+    content: '';
+    width: 32px;
+    height: 3px;
+    border-radius: var(--radius-full);
+    background: var(--border-2);
+  }
+
+  /* Native resize fully replaced by the handle above — leaving it on risks
+     Android browsers with partial native support fighting the same drag
+     gesture as the custom handle. */
+  .form-textarea,
+  .field-textarea {
+    resize: none;
+  }
+}
+
+
+
+/* Total token counter — was a single line of muted mono text that got lost
+   at the bottom of the rail. Now a small card with the number as the focal
+   point so it reads as a stat, not a footnote — this is the number you
+   actually check before hitting Save.
+
+   NOT font-serif here despite the rest of the app's numbers-as-headline
+   convention: Playfair Display's webfont has no tnum table (confirmed via
+   FontDiff — tabular_nums: false), so `font-variant-numeric: tabular-nums`
+   on it is a no-op the browser silently drops, and proportional serif
+   digits reflow the whole card's width on every keystroke (1 -> 12 -> 123).
+   IBM Plex Mono actually ships tabular figures, so it's used here purely
+   for that guarantee — the card is still gold/prominent, just not serif. */
+.char-total-tokens {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  min-height: 64px;
+  justify-content: center;
+  background: var(--gold-dim);
+  border: 1px solid var(--gold-border);
+  border-radius: var(--radius-md);
+}
+
+.char-total-tokens-value {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xl);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  color: var(--gold-light);
+  line-height: 1;
+}
+
+.char-total-tokens-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-muted);
+}
+
+/* Estimated (llama-server offline, length/4 fallback) — swap gold for a
+   neutral/warning tone so it doesn't read as confidently as an exact count */
+.char-total-tokens-approx {
+  background: var(--surface-3);
+  border-color: var(--border-2);
+}
+
+.char-total-tokens-approx .char-total-tokens-value {
+  color: var(--warning);
+}
+
+/* Required star */
+.required-star {
+  color: var(--danger);
+  margin-left: 2px;
+}
+
+/* Label with inline token count */
+.form-label-with-tokens {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* ── Field accordion ──
+   .view-body is display:flex;flex-direction:column. Without flex-shrink:0,
+   flex items are allowed to shrink below their content size (min-height:auto
+   default) whenever siblings — here, the two required textareas above —
+   eat up the available height. That's what was crushing every accordion
+   down to ~2px: not a color/contrast issue, the boxes were being physically
+   squashed by flexbox, header text and all. */
+.field-accordion {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  flex-shrink: 0;
+  transition: border-color var(--dur) var(--ease);
+}
+
+.field-accordion:focus-within {
+  border-color: var(--gold-border);
+}
+
+.field-accordion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+  user-select: none;
+  gap: var(--space-3);
+  transition: background var(--dur) var(--ease);
+}
+
+.field-accordion-header:hover {
+  background: var(--surface-2);
+}
+
+.field-accordion-title {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-widest);
+  text-transform: uppercase;
+  color: var(--text-muted);
+  flex: 1;
+  transition: color var(--dur) var(--ease);
+}
+
+.field-accordion.open .field-accordion-title {
+  color: var(--text);
+}
+
+/* Token count badge in accordion header */
+.field-token-count {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  letter-spacing: var(--tracking-wide);
+  flex-shrink: 0;
+}
+
+/* Accordion body — collapse/expand.
+   Uses a grid-template-rows 0fr/1fr swap instead of max-height: none/fixed-px.
+   A fixed max-height clips auto-growing textareas (the original bug); "none"
+   fixes clipping but can't be animated by the browser on the way open, so it
+   snapped open instead of sliding. Grid rows solve both: 0fr/1fr always has
+   a real animatable value, and 1fr lets the row (and any textarea inside)
+   grow to whatever height its content needs, with no ceiling. */
+.field-accordion-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  /* Opening uses --ease-spring: the row overshoots past 1fr and settles
+     back, reading as a light bounce. That only looks right growing
+     open — collapsing back to 0fr has nothing to "land" on past zero,
+     so the closing direction keeps the plain --ease-out from before
+     (see .field-accordion.open below vs. the base rule here). */
+  transition: grid-template-rows var(--dur-slow) var(--ease-out);
+}
+
+.field-accordion.open .field-accordion-body {
+  grid-template-rows: 1fr;
+  transition: grid-template-rows var(--dur-drawer) var(--ease-spring);
+}
+
+/* Grid row-track animation only works if the child can actually shrink to 0
+   during the collapsed state — without min-height:0 a grid item defaults to
+   its content's intrinsic size and refuses to compress, which would bring
+   back the exact same "squashed/invisible but still taking space" symptom
+   the flex-shrink bug caused elsewhere in this same view. */
+.field-accordion-body > .field-accordion-body-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Horizontal spacing only as padding on the wrapper. Left/right padding is
+   fine here — a fixed side inset doesn't fight the 0fr collapse the way
+   top/bottom does (see below), and putting width:100% + margin on the same
+   element (the textarea) doesn't subtract margin from that 100%, it adds on
+   top, which is what made every field-textarea overflow past the accordion's
+   right edge in the original bug. */
+.field-accordion-body-inner {
+  padding: 0 var(--space-4);
+}
+
+/* Top/bottom spacing as margin on the actual content, NOT padding on the
+   wrapper — this distinction is the whole bug. padding-top/bottom on
+   .field-accordion-body-inner always renders at its full declared size no
+   matter what min-height:0 says, because padding is never optional the way
+   an element's own height is; it just adds that many px to the wrapper's
+   rendered box, which pushes the "collapsed" grid track open by exactly
+   that amount and reappears as a sliver past overflow:hidden. A margin on
+   the child, by contrast, genuinely has nowhere to go once the row that
+   contains it collapses to zero — there's no box left for it to sit next
+   to — so it collapses away with the rest of the content instead of
+   forcing space open. (An earlier attempt blamed this same sliver on
+   margin-collapsing and "fixed" it by moving to padding — that made it
+   worse, which was the tell that padding, not margin, was the problem.) */
+.field-accordion-body-inner > *:first-child {
+  margin-top: var(--space-3);
+}
+
+.field-accordion-body-inner > *:last-child {
+  margin-bottom: var(--space-4);
+}
+
+/* Textarea inside accordion */
+.field-textarea {
+  width: 100%;
+  padding: var(--space-3);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
+  min-height: 88px;
+  resize: vertical;
+  overflow: hidden; /* see .form-textarea — same auto-resize, same dead scroll */
+  transition:
+    border-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+  box-sizing: border-box;
+}
+
+.field-textarea:focus {
+  border-color: var(--gold-border);
+  box-shadow: 0 0 0 3px var(--gold-dim);
+  outline: none;
+}
+
+/* Small input (priority, version, etc.) */
+.field-input {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-size: var(--text-sm);
+  transition:
+    border-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+  box-sizing: border-box;
+}
+
+.field-input:focus {
+  border-color: var(--gold-border);
+  box-shadow: 0 0 0 3px var(--gold-dim);
+  outline: none;
+}
+
+.field-input-sm {
+  width: 80px;
+  padding: var(--space-1) var(--space-2);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+/* Small label inside accordion body */
+.field-label-sm {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: var(--space-1);
+}
+
+/* "not injected" muted tag */
+.field-tag-muted {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-muted);
+  opacity: 0.6;
+  margin-left: var(--space-2);
+  text-transform: none;
+}
+
+/* Add button (greetings / book entries) */
+.field-add-btn {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  background: transparent;
+  border: 1px dashed var(--border-2);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-wide);
+  text-align: center;
+  cursor: pointer;
+  transition:
+    border-color var(--dur) var(--ease),
+    color var(--dur) var(--ease),
+    background var(--dur) var(--ease);
+}
+
+.field-add-btn:hover {
+  border-color: var(--gold-border);
+  color: var(--gold);
+  background: var(--gold-dim);
+}
+
+.field-add-btn svg {
+  width: 11px;
+  height: 11px;
+  vertical-align: -1px;
+}
+
+/* Remove button (× on entries/greetings) */
+.field-remove-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1;
+  flex-shrink: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    border-color var(--dur) var(--ease),
+    color var(--dur) var(--ease),
+    background var(--dur) var(--ease);
+}
+
+.field-remove-btn:hover {
+  border-color: var(--danger-border);
+  color: var(--danger);
+  background: var(--danger-dim);
+}
+
+/* ── Alternate greeting item ──
+   These are .field-accordion instances NESTED inside the outer
+   "Alternate greetings" accordion's body. The base .field-accordion border
+   (rgba white 7%) is nearly invisible against --surface-1/--surface-2, so
+   with only 8px between items they used to read as one solid smear of
+   near-identical grey stripes instead of separate collapsible entries.
+   Bumping the border contrast + radius + gap makes each item visually
+   distinct at a glance, even fully collapsed. */
+.alt-greeting-item {
+  margin-bottom: var(--space-3);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.alt-greeting-item:last-child {
+  margin-bottom: 0;
+}
+
+.alt-greeting-item .field-accordion-header {
+  background: var(--surface-2);
+}
+
+/* ── Character book entry ── */
+.charbook-entry {
+  background: var(--surface-2);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.charbook-entry-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.charbook-entry-meta {
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.charbook-entry-meta label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
+/* ── Save button disabled state ── */
+.save-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+
+.model-card-cfg-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--neutral-fill-subtle);
+    border: 1px solid var(--border-2);
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    opacity: 0.55;
+    padding: 0;
+    z-index: 1;
+    transition:
+      opacity var(--dur) var(--ease),
+      background var(--dur) var(--ease),
+      border-color var(--dur) var(--ease);
+}
+.model-card-cfg-btn img {
+  width: 14px;
+  height: 14px;
+  filter: var(--icon-filter-white);
+}
+.model-card-cfg-btn:hover {
+  opacity: 1;
+  background: var(--neutral-hover);
+  border-color: var(--border);
+}
+
+/* Card gets relative positioning + right padding reserved for the
+   absolutely-positioned cfg-btn, so the badge (which sits in normal flow,
+   right-aligned via margin-left:auto below) never has to fight it for the
+   same physical corner — the two used to overlap once cards went to 2
+   columns and got narrower. */
+.model-card {
+  position: relative;
+}
+
+/* Badge sits inline next to the size/meta text rather than stacked under
+   the gear — the gear stays fixed top-right, the badge lives in the
+   body's own row where there's actual free space instead of competing
+   for the same corner. */
+.model-card-badge {
+  margin-left: var(--space-2);
+}
+/* ── Responsive tweaks (was under a generic "RESPONSIVE" header
+   in components.css — mixed concerns: grid/search here, .view-*
+   belongs conceptually to layout.css, model-switch/settings-number
+   belongs to settings.css. Left together to avoid splitting one
+   @media block across three files; revisit if it gets messier. ── */
+@media (max-width: 767px) {
+  .character-grid {
+    padding: var(--space-3) var(--space-4);
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: var(--space-2);
+  }
+
+  .search-wrapper {
+    padding: var(--space-2) var(--space-4);
+  }
+
+  .view-header {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .view-body {
+    padding: var(--space-4);
+    gap: var(--space-4);
+  }
+
+  .model-switch-buttons {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-2);
+  }
+
+  .settings-number-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Vesper</title>
+  <link rel="icon" href="{{ url_for('static', filename='icons/favicon.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body>
+
+{% include "_icons.html" %}
+{% include "_modals.html" %}
+
+<!-- ═══════════════════════════════════════
+     APP SHELL
+═══════════════════════════════════════ -->
+<div class="app-container">
+
+  {% include "_navigation.html" %}
+
+  <!-- ── MAIN ── -->
+  <div class="main-content">
+    {% include "_chat.html" %}
+    {% include "_tools.html" %}
+    {% include "_forms.html" %}
+  </div><!-- .main-content -->
+
+</div><!-- .app-container -->
+
+
+<!-- ═══════════════════════════════════════
+     SCRIPTS
+═══════════════════════════════════════ -->
+<script src="{{ url_for('static', filename='js/bgPattern.js') }}"></script>
+<script src="{{ url_for('static', filename='js/state.js') }}"></script>
+<script src="{{ url_for('static', filename='js/ui.js') }}"></script>
+<script src="{{ url_for('static', filename='js/layoutFix.js') }}"></script>
+<script src="{{ url_for('static', filename='js/characters.js') }}"></script>
+<script src="{{ url_for('static', filename='js/personas.js') }}"></script>
+<script src="{{ url_for('static', filename='js/imageGen.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chatSummary.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chatNotes.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chatDraft.js') }}"></script>
+<script src="{{ url_for('static', filename='js/scrollBounce.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modelManager.js') }}"></script>
+<script src="{{ url_for('static', filename='js/textReplace.js') }}"></script>
+<script src="{{ url_for('static', filename='js/tokenCounter.js') }}"></script>
+<script src="{{ url_for('static', filename='js/settings.js') }}"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+
+</body>
+</html>

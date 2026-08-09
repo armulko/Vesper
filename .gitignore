@@ -1,0 +1,73 @@
+# ═══════════════════════════════════════════════════
+# Vesper — .gitignore
+# ═══════════════════════════════════════════════════
+
+# ── Model weights (huge, user-supplied, never belongs in git) ──
+/models/*
+!/models/.gitkeep
+*.gguf
+*.safetensors
+*.ckpt
+*.bin
+
+# ── llama.cpp server binary (downloaded separately, platform-specific) ──
+/llama_server/*
+!/llama_server/.gitkeep
+
+# ── User data (chat histories, characters, personas, settings — personal, not project code) ──
+# Ignore everything in /data/ by default, but keep the folder structure
+# itself and cherry-pick back the two things that ARE project assets,
+# not user-generated content: keyboard_layouts.json (search autocorrect
+# tables) and the default avatar SVG pool.
+/data/*
+!/data/.gitkeep
+!/data/keyboard_layouts.json
+!/data/avatars/
+/data/avatars/*
+!/data/avatars/default/
+!/data/avatars/default/*.svg
+
+# ── Python ──
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+.Python
+build/
+dist/
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# ── Node (in case any tooling gets added later) ──
+node_modules/
+
+# ── OS junk ──
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Editor / IDE ──
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── Logs ──
+*.log
+
+# ── Env / secrets ──
+.env
+.env.local
+*.pem
+*.key
+
+# ── Misc local artifacts ──
+*.tmp
+*.bak

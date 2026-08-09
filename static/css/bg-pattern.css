@@ -1,0 +1,146 @@
+/* ═══════════════════════════════════════════════════
+   VESPER — Decorative Background Pattern
+   Generated crystal field (bgPattern.js) — positioning,
+   drift, and spin animation. Purely decorative, no layout
+   logic. Split out of layout.css (2nd great refactoring).
+═══════════════════════════════════════════════════ */
+
+/* ── Background pattern ──
+   The actual shape generation lives in bgPattern.js — a repeating
+   CSS background-image was tried first (both a straight composite
+   tile and a Truchet-arc version), but a tiled image is always
+   visibly "the same thing over and over" no matter how the tile
+   itself is designed, since it's mechanically the same graphic
+   repeated. Real irregularity needs randomized placement, which only
+   JS can generate; bgPattern.js builds one large <svg> once at page
+   load with each motif — a faceted low-poly "crystal", several
+   triangular facets shaded at different opacities to fake depth —
+   placed at a jittered position/rotation/scale, and inserts it as the
+   first child of .main-content — these rules just position and
+   animate that generated element.
+   currentColor drives every facet's fill/stroke so this stays a
+   single color token (gold) controlled from here, not baked into the
+   generated markup. Because each crystal's darkest facets are already
+   dimmed down to ~12% opacity internally (see buildCrystal in
+   bgPattern.js) to sell the lighting illusion, this base opacity needs
+   to run higher than a flat-line version would — at the old ~0.045 the
+   dim facets were essentially invisible and the shading gradient never
+   read. The whole field drifts slowly via a plain CSS transform —
+   deliberately not scroll-linked, since a background this subtle
+   doesn't need scroll-driven motion to read as "alive", and a CSS-only
+   loop costs nothing on the main thread once the shapes exist. */
+.bg-pattern-svg {
+  position: absolute;
+  inset: -900px; /* matches the overscan bgPattern.js generates content into */
+  z-index: var(--z-base);
+  pointer-events: none;
+  color: var(--gold);
+  opacity: var(--bg-pattern-opacity, 0.11);
+  /* THE ACTUAL BUG, finally found: <svg> has overflow:hidden baked in
+     as a user-agent default — it clips its own content to its own
+     viewBox bounds regardless of where the <svg> box itself is
+     positioned on the page. Every crystal's orbit/spin animation
+     translates it within local <g> coordinate space, and depending on
+     exact sub-pixel viewBox rounding (which happens to differ at
+     devicePixelRatio === 1 vs fractional zoom levels — this is what
+     made the bug appear only at exactly 100% browser zoom and nowhere
+     else), that clip could cut into content that should have been
+     fully inside the box. Overriding overflow:visible here removes
+     the clip entirely — nothing in this pattern actually needs SVG's
+     own clipping, since .main-content's overflow:hidden already
+     bounds the visible area from the outside. */
+  overflow: visible;
+  animation: bgPatternDrift 90s linear infinite alternate;
+}
+
+@keyframes bgPatternDrift {
+  /* Constant-speed diagonal drift, top-right to bottom-left and back.
+     The earlier version used --ease (a cubic-bezier with a slow-start/
+     fast-middle/slow-end curve) — combined with alternate, the reverse
+     leg re-plays that same acceleration curve backwards, so the field
+     visibly sped up and slowed down instead of moving steadily, which
+     is what read as "off". linear removes all acceleration, so
+     alternate's reverse leg is just the same constant speed run
+     backward — no direction-change lurch, and no separate "loop back
+     to start" jump to engineer.
+     Travel distance is 200px per axis — deliberately less than the
+     300px overscan bgPattern.js generates the field into (see the
+     `overscan` constant there), leaving a margin so the edge of the
+     generated field never reaches the viewport edge even with minor
+     viewport-size discrepancies (scrollbars, mobile chrome, etc). */
+  from { transform: translate(200px, -200px); }
+  to   { transform: translate(-200px, 200px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-pattern-svg {
+    animation: none;
+  }
+}
+
+/* ── Per-crystal spin ──
+   Self-rotation only, driven entirely by CSS custom properties set
+   inline by bgPattern.js (--spin-duration, --spin-direction, etc.) —
+   one shared @keyframes block, with per-instance timing, rather than
+   generating a unique @keyframes block for every single crystal
+   (hundreds of them) which would bloat the generated markup for no
+   visual benefit.
+
+   An earlier version also had .bg-crystal-orbit — a small wobble
+   animation on the outer <g> that wraps this one — but it turned out
+   to reliably make the entire crystal field invisible, specifically
+   and only at devicePixelRatio === 1 (100% browser zoom, not 90%,
+   not 110%). This was root-caused through direct elimination: not
+   z-index/stacking, not SVG's default overflow:hidden, not opacity,
+   not viewBox rounding, not transform-box:fill-box (tried first,
+   ruled out), not the calc()/custom-property values in its keyframes
+   (replaced with plain px, still broken), not its timing-function or
+   animation-direction (forced to match the working spin animation,
+   still broken), not the translate-vs-transform property split
+   (merged into one, still broken). Every controllable variable was
+   swapped to match the working .bg-crystal-spin one at a time and it
+   stayed broken regardless — strongly suggesting a Chromium
+   compositing edge case tied to that specific element/animation
+   combination that isn't practical to keep chasing for a subtle
+   wobble effect. The .bg-crystal-orbit class is still applied by
+   bgPattern.js (it's part of the <g> nesting structure the spin
+   depends on), it simply carries no animation of its own now.
+
+   Base position/scale for these elements is set via the CSS
+   `translate`/`scale` properties in bgPattern.js rather than the SVG
+   transform="" attribute — CSS `transform` (which is what the spin
+   animation below actually animates) always replaces an attribute
+   transform outright instead of combining with it, so the base
+   placement had to live somewhere that composites with an animated
+   transform rather than getting overwritten by it. */
+.bg-crystal-spin {
+  animation-name: bgCrystalSpin;
+  animation-duration: var(--spin-duration, 60s);
+  animation-delay: var(--spin-delay, 0s);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-direction: var(--spin-direction, normal);
+  /* transform-origin: 0 0 works here because every crystal is built
+     symmetrically around its own local (0,0) in buildCrystal() (see
+     bgPattern.js) — the <g>'s own origin IS the crystal's visual
+     center, no bounding-box lookup (transform-box: fill-box) needed. */
+  transform-origin: 0 0;
+}
+
+@keyframes bgCrystalSpin {
+  /* linear, not ease — a constant self-rotation reads as a slowly
+     turning gem catching the light; an eased spin would visibly
+     speed up and slow down once per revolution, which reads as
+     wobbling rather than spinning. --base-rotation offsets the start
+     angle per-instance so crystals don't all appear to start from
+     the same facing when the page loads. */
+  from { transform: rotate(var(--base-rotation, 0deg)); }
+  to   { transform: rotate(calc(var(--base-rotation, 0deg) + 360deg)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-crystal-orbit,
+  .bg-crystal-spin {
+    animation: none;
+  }
+}

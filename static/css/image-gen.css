@@ -1,0 +1,48 @@
+/* ═══════════════════════════════════════════════════
+   VESPER — Image Generation (standalone view)
+   Split out of components.css (2nd great refactoring).
+═══════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════
+   IMAGE GENERATION (standalone view)
+═══════════════════════════════════════════════════ */
+.steps-range-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--space-1);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/* Progress bar (SD generation) */
+.avatar-progress-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  width: 100%;
+  margin-top: var(--space-3);
+}
+
+.avatar-progress-bar {
+  width: 100%;
+  height: 3px;
+  background: var(--border);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.avatar-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--violet), var(--gold));
+  border-radius: var(--radius-full);
+  transition: width 0.3s var(--ease-out);
+}
+
+.avatar-progress-text {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-align: center;
+  letter-spacing: var(--tracking-wide);
+}

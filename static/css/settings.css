@@ -1,0 +1,490 @@
+/* ═══════════════════════════════════════════════════
+   VESPER — Settings
+   Model manager cards, settings accordion, shutdown button.
+   Split out of components.css (2nd great refactoring).
+═══════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════
+   MODEL MANAGER
+═══════════════════════════════════════════════════ */
+.model-manager {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.model-manager-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.model-manager-title {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-widest);
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 0 var(--space-1);
+}
+
+.model-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-2);
+}
+
+.model-cards .model-card-none {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 640px) {
+  .model-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+.model-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--neutral-dim);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition:
+    border-color var(--dur) var(--ease),
+    background var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+.model-card:hover {
+  border-color: var(--neutral-border);
+  background: var(--neutral-hover-faint);
+}
+
+.model-card.selected {
+  border-color: var(--gold-border);
+  background: var(--gold-dim);
+  box-shadow: 0 0 0 1px var(--gold-dim);
+}
+
+/* .loaded no longer carries its own violet border/glow — .selected (gold)
+   is now the single card-level state indicator; "loaded" shows via badge
+   only, and even that badge is now positioned clear of the cfg-btn (see
+   below — they used to collide in the same corner). */
+
+.model-card-none {
+  color: var(--text-muted);
+}
+
+.model-card-none:hover {
+  border-color: var(--danger-border);
+  background: var(--danger-dim);
+  color: var(--danger);
+}
+
+.model-card-icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.model-card-icon img {
+  width: 18px;
+  height: 18px;
+  filter: invert(1) opacity(0.7);
+}
+
+.model-card-icon svg {
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+.model-card.selected .model-card-icon svg {
+  color: var(--gold);
+  opacity: 1;
+}
+
+.model-card.selected .model-card-icon img {
+  filter: var(--icon-filter-gold);
+}
+
+.model-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.model-card-name {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.model-card-meta {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-top: 2px;
+  letter-spacing: var(--tracking-wide);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.model-card-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  display: inline-flex;
+}
+
+.model-card-badge.badge-selected {
+  background: var(--gold-dim);
+  color: var(--gold);
+  border: 1px solid var(--gold-border);
+}
+
+/* Model switch loader overlay */
+.model-switch-loader {
+  position: fixed;
+  inset: 0;
+  background: var(--modal-scrim);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: var(--z-modal);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+}
+
+.loader-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+}
+
+.loader-spinner {
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--border-2);
+  border-top-color: var(--gold);
+  border-radius: var(--radius-full);
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loader-text {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-widest);
+  text-transform: uppercase;
+  color: var(--text-muted);
+  animation: textPulse 1.4s var(--ease) infinite;
+}
+
+@keyframes textPulse {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 1;   }
+}
+
+
+/* ═══════════════════════════════════════════════════
+   SETTINGS ACCORDION
+═══════════════════════════════════════════════════ */
+.settings-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.settings-section {
+  background: var(--neutral-fill);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.settings-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+  user-select: none;
+  border-radius: var(--radius-lg);
+  transition: background var(--dur) var(--ease);
+}
+
+.settings-section-header:hover {
+  background: var(--neutral-dim);
+}
+
+.settings-section-header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--text);
+}
+
+.settings-arrow {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  transition: transform var(--dur-slow) var(--ease);
+}
+
+.settings-section.open .settings-arrow {
+  transform: rotate(180deg);
+}
+
+.settings-section-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height var(--dur-slow) var(--ease-out);
+}
+
+.settings-section-inner {
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Two-column grid for number inputs */
+.settings-number-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3) var(--space-4);
+}
+
+.settings-number-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.settings-number-input {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  background: var(--neutral-fill);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  transition:
+    border-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+.settings-number-input:focus {
+  border-color: var(--gold-border);
+  box-shadow: 0 0 0 3px var(--gold-dim);
+}
+
+.settings-textarea {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  background: var(--neutral-fill);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  line-height: var(--leading-base);
+  min-height: 64px;
+  resize: none;
+  overflow: hidden;
+  transition:
+    border-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+.settings-textarea:focus {
+  border-color: var(--gold-border);
+  box-shadow: 0 0 0 3px var(--gold-dim);
+}
+
+.settings-divider {
+  height: 1px;
+  background: var(--border);
+  margin: var(--space-1) 0;
+}
+
+
+
+/* ═══════════════════════════════════════════════════
+   SHUTDOWN
+═══════════════════════════════════════════════════ */
+.settings-footer-row {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.settings-save-btn {
+  flex: 1 1 50%;
+  width: auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+/* ── Stagger-in for the Settings view ──
+   Same restart-reliability mechanism as the chat message / grid card
+   reveals (remove → reflow → re-add from JS, paused → running via a
+   container class). Unlike those two, this isn't about a physical
+   left/right position (settings is a single-column stack of full-width
+   blocks) — it's a simple alternation by block order: 1st block from the
+   left, 2nd from the right, 3rd from the left, and so on, the same on
+   mobile and desktop since there's no grid geometry involved here. Scoped
+   to #modelSwitchView specifically (not `.view-body > *` globally) so
+   other single-column views — chat, character forms — aren't affected. */
+#modelSwitchView .view-body > * {
+  animation-play-state: paused;
+}
+
+#modelSwitchView .view-body > *.settings-stagger-in:nth-child(odd) {
+  animation-name: settingsSlideInLeft;
+  animation-duration: var(--dur);
+  animation-timing-function: var(--ease-spring);
+  animation-fill-mode: both;
+}
+
+#modelSwitchView .view-body > *.settings-stagger-in:nth-child(even) {
+  animation-name: settingsSlideInRight;
+  animation-duration: var(--dur);
+  animation-timing-function: var(--ease-spring);
+  animation-fill-mode: both;
+}
+
+#modelSwitchView .view-body.stagger-play > *.settings-stagger-in {
+  animation-play-state: running;
+  animation-delay: calc(var(--stagger-i, 0) * 60ms);
+}
+
+@keyframes settingsSlideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes settingsSlideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.save-btn-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  /* SVG already ships black (stroke="black") — button text is also
+     dark-on-gold, so no filter needed here */
+}
+
+.shutdown-btn.shutdown-btn-compact {
+  flex: 1 1 50%;
+  min-width: 0;
+  flex-direction: row;
+  justify-content: center;
+}
+
+.shutdown-btn-compact .shutdown-icon {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+}
+
+.shutdown-btn {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: transparent;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-lg);
+  color: var(--text-muted);
+  transition:
+    border-color var(--dur) var(--ease),
+    background var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+
+.shutdown-btn:hover {
+  border-color: var(--danger-border);
+  background: var(--danger-dim);
+  color: var(--danger);
+}
+
+.shutdown-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  /* ships black — invert to match --text-muted, same trick as other icons;
+     hover state below tints it toward --danger via filter, not just color,
+     since it's an <img> not inline SVG */
+  filter: invert(1) opacity(0.6);
+  transition: filter var(--dur) var(--ease);
+}
+
+.shutdown-btn:hover .shutdown-icon {
+  /* rough red tint to track the text going --danger on hover */
+  filter: var(--icon-filter-danger-hover);
+}
+
+.shutdown-labels {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  text-align: left;
+}
+
+.shutdown-text {
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.shutdown-desc {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-muted);
+}

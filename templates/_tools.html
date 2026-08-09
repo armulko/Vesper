@@ -1,0 +1,130 @@
+{# templates/partials/_tools.html #}
+{# Settings/model-switch, image generator, text-replace utility views + model-config modal. #}
+    <!-- ─────────── SETTINGS / MODEL SWITCH ─────────── -->
+
+    <div id="modelSwitchView" class="view">
+      <div class="view-container">
+        <div class="view-header">
+          <div class="view-title">Settings</div>
+          <button class="view-back-btn desktop-only" onclick="switchView('chat')"><svg width="14" height="14" viewBox="0 0 14 14"><use href="#icon-back"/></svg></button>
+        </div>
+        <div class="view-body">
+
+          <div class="model-manager" id="modelManager">
+            <div class="model-manager-section">
+              <div class="model-manager-title">Language Model</div>
+              <div class="model-cards" id="llmCards"></div>
+            </div>
+            <div class="model-manager-section">
+              <div class="model-manager-title">Image Model</div>
+              <div class="model-cards" id="sdCards"></div>
+            </div>
+          </div>
+
+          <div class="settings-accordion" id="settingsAccordion"></div>
+
+          <!-- Save + Shutdown split 50/50 in one row instead of stacking
+               as two full-width blocks — settings.js appends the Save
+               button here via #settingsFooterRow instead of into
+               #settingsAccordion directly. -->
+          <div class="settings-footer-row" id="settingsFooterRow">
+            <button class="shutdown-btn shutdown-btn-compact" onclick="shutdownPC()">
+              <img class="shutdown-icon" src="/static/icons/power.svg" alt="">
+              <div class="shutdown-labels">
+                <span class="shutdown-text">Shutdown PC</span>
+                <span class="shutdown-desc">Immediately</span>
+              </div>
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────── IMAGE GEN ─────────── -->
+    <div id="imageGenView" class="view">
+      <div class="view-container">
+        <div class="view-header">
+          <div class="view-title">Image generator</div>
+        </div>
+        <div class="view-body">
+
+          <div class="form-group">
+            <label class="form-label">Result</label>
+            <div class="image-preview image-gen-preview" id="imageGenPreview">
+              <div class="image-preview-placeholder">Empty</div>
+            </div>
+            <div class="avatar-progress-container hidden" id="imageGenProgressContainer">
+              <div class="avatar-progress-bar">
+                <div class="avatar-progress-fill" id="imageGenProgressFill"></div>
+              </div>
+              <div class="avatar-progress-text" id="imageGenProgressText">0 / 20</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Prompt</label>
+            <textarea class="form-textarea" id="imageGenPrompt" placeholder="Describe the image…"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              Steps: <span id="imageGenStepsValue">20</span>
+            </label>
+            <input type="range" id="imageGenSteps" min="1" max="60" value="20"
+              oninput="document.getElementById('imageGenStepsValue').textContent = this.value">
+            <div class="steps-range-labels"><span>1</span><span>60</span></div>
+          </div>
+
+          <button class="save-btn" id="imageGenBtn" onclick="generateImage()">Generate</button>
+          <button class="save-btn save-btn-success" id="imageGenSaveBtn"
+            onclick="saveGeneratedImage()" style="display:none">Save image</button>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────── TEXT REPLACE ─────────── -->
+    <div id="textReplaceView" class="view">
+      <div class="view-container">
+        <div class="view-header">
+          <div class="view-title">Text replace</div>
+        </div>
+        <div class="view-body">
+
+          <div class="form-group">
+            <label class="form-label">Source text</label>
+            <textarea class="form-textarea" id="replaceInput" placeholder="Paste text here…"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Replace pairs</label>
+            <div id="replacePairs"></div>
+            <button class="file-input-label" onclick="addReplacePair()"><svg width="11" height="11" viewBox="0 0 14 14"><use href="#icon-plus"/></svg> Add pair</button>
+          </div>
+
+          <button class="save-btn" onclick="applyReplace()">Apply</button>
+
+          <div class="form-group">
+            <label class="form-label">Result</label>
+            <div class="replace-output">
+              <textarea id="replaceOutput" class="form-textarea" readonly placeholder="Result will appear here…"></textarea>
+              <button class="replace-copy-btn" onclick="copyReplaceResult()">Copy</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  <!-- Model config modal -->
+  <div class="confirm-modal" id="modelConfigModal">
+    <div class="confirm-content" style="min-width: min(480px, 92vw); max-height: 85vh; overflow-y: auto;">
+      <div class="confirm-title" id="modelConfigTitle">Model settings</div>
+      <div id="modelConfigFields" style="display:flex; flex-direction:column; gap:10px; margin: 12px 0;"></div>
+      <div class="confirm-buttons">
+        <button class="confirm-btn confirm-no" onclick="closeModelConfig()">Cancel</button>
+        <button class="confirm-btn confirm-yes" id="modelConfigSaveBtn" onclick="saveModelConfig()">Save</button>
+      </div>
+    </div>
+  </div>

@@ -1,0 +1,64 @@
+{# templates/partials/_navigation.html #}
+{# Desktop sidebar (character/persona tabs, search, list) + mobile bottom nav bar. #}
+  <!-- ── SIDEBAR (desktop) ── -->
+  <aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-brand">
+      <div class="sidebar-logo-mark">
+        <svg width="16" height="16" viewBox="0 0 14 14"><use href="#icon-logo-star"/></svg>
+      </div>
+      <div class="sidebar-logo-text">Ve<em>sper</em></div>
+    </div>
+
+    <div class="sidebar-content">
+
+    <!-- tabs -->
+    <div class="sidebar-tabs">
+      <button class="sidebar-tab active" data-tab="characters">Characters</button>
+      <button class="sidebar-tab" data-tab="personas">Personas</button>
+    </div>
+
+    <!-- search -->
+    <div class="sidebar-search">
+      <img class="sidebar-search-icon" src="/static/icons/search.svg" alt="">
+      <input type="text" id="sidebarSearch" placeholder="Search...">
+    </div>
+
+    <!-- dynamic content -->
+    <div class="sidebar-list" id="sidebarList"></div>
+
+    </div>
+
+    <div class="sidebar-footer">
+      <button class="sidebar-secondary-btn" id="createEntityBtn">
+        <svg width="12" height="12" viewBox="0 0 14 14"><use href="#icon-plus"/></svg>
+        Create
+      </button>
+    </div>
+
+  </aside>
+
+  <!-- ── BOTTOM NAV (mobile) ── -->
+  <nav class="bottom-nav" id="bottomNav">
+    <button class="nav-btn active" data-view="chat" onclick="switchView('chat')">
+      <span class="nav-icon"><img src="/static/icons/chat.svg" width="22" height="22"></span>
+      <span class="nav-label">Chat</span>
+    </button>
+    <button class="nav-btn" data-view="load" onclick="switchView('load')">
+      <span class="nav-icon"><img src="/static/icons/characters.svg" width="22" height="22"></span>
+      <span class="nav-label">Characters</span>
+    </button>
+    <button class="nav-btn" data-view="loadPersona" onclick="switchView('loadPersona')">
+      <span class="nav-icon"><img src="/static/icons/personas.svg" width="22" height="22"></span>
+      <span class="nav-label">Personas</span>
+    </button>
+    <button class="nav-btn" data-view="imageGen" onclick="switchView('imageGen')">
+      <span class="nav-icon"><img src="/static/icons/image.svg" width="22" height="22"></span>
+      <span class="nav-label">Image</span>
+    </button>
+    <button class="nav-btn" data-view="modelSwitch" onclick="switchView('modelSwitch')">
+      <span class="nav-icon"><img src="/static/icons/settings.svg" width="22" height="22"></span>
+      <span class="nav-label">Settings</span>
+    </button>
+  </nav>
+

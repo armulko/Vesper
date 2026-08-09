@@ -1,0 +1,222 @@
+/* ═══════════════════════════════════════════════════
+   VESPER — Design Tokens
+   All other CSS files read exclusively from here.
+   Never hardcode values outside this file.
+═══════════════════════════════════════════════════ */
+
+:root {
+
+  /* ── Backgrounds ── */
+  --bg:          #0c0c10;   /* page root */
+  --surface-1:   #111118;   /* sidebar, topbar, input areas */
+  --surface-2:   #16161f;   /* cards, bubbles, inputs */
+  --surface-3:   #1c1c28;   /* hover states, active cards */
+  --surface-4:   #21212f;   /* deepest insets */
+
+  /* ── Borders ── */
+  --border:      rgba(255, 255, 255, 0.07);
+  --border-2:    rgba(255, 255, 255, 0.12);
+  --border-3:    rgba(255, 255, 255, 0.18);
+
+  /* ── Accent HSL Channels (for flexible opacity / color-mix) ── */
+  --gold-hsl:    35, 38%, 54%;
+  --violet-hsl:  249, 83%, 79%;
+  --danger-hsl:  5, 68%, 65%;
+  --success-hsl: 140, 39%, 59%;
+  --warning-hsl: 37, 65%, 58%;
+
+  /* ── Accent: Gold ── */
+  --gold:        #b8905c;
+  --gold-light:  #d4b892;
+  --gold-dark:   #7a5530;
+  --gold-dim:    rgba(184, 144, 92, 0.10);
+  --gold-glow:   rgba(184, 144, 92, 0.25);
+  --gold-border: rgba(184, 144, 92, 0.30);
+
+  /* ── Neutral (role-based transparency) ──
+     Same border+background+shadow pattern as --gold-dim/--gold-border,
+     but for elements that aren't the "selected/accent" state — message
+     bubbles, containers, cards at rest. Deliberately weaker than gold's
+     0.10/0.28 so a neutral element never visually competes with an
+     actual selected one; it's a step down, not a different color doing
+     the same job. Built from white so it rides on top of any --surface-*
+     background rather than fighting it. Never apply to text, images, or
+     SVG icons — this is a background/border-only role. */
+  --neutral-dim:    rgba(255, 255, 255, 0.02);   /* Raised to 0.02 to avoid sub-pixel alpha clipping */
+  --neutral-border: rgba(255, 255, 255, 0.04);   /* Raised to 0.04 for stable browser rendering */
+
+  /* Stronger neutral fill for containers that need to actually read as
+     a solid card (message bubbles, etc.) — --neutral-dim above is for
+     subtle hover/rest hints, this is for "still a container, just not
+     opaque like --surface-2". */
+  /* Cool dark tone, same reasoning as --neutral-fill-faint below — a
+     white fill mixes with the gold crystal field showing through and
+     reads warm/yellow instead of neutral. */
+  --neutral-fill: rgba(14, 15, 22, 0.55);
+
+  /* Ultra-faint fill for message bubbles specifically — not meant to
+     read as "a container with a background", just a barely-there shift
+     in tone against whatever sits behind it (the decorative crystal
+     field). The border still carries the shape; this only needs to
+     register as "the tone changed here", not as its own surface. */
+  /* Cool dark-blue tint rather than plain white — the decorative
+     crystal field behind bubbles is drawn in --gold (see .bg-pattern-svg
+     in layout.css), and a transparent white fill just mixes with
+     whatever gold shows through, reading as a warm/yellow tint instead
+     of neutral. A cool base color pushes back against that gold instead
+     of just diluting it. */
+  --neutral-fill-faint: rgba(18, 20, 32, 0.5);
+
+  /* Subtle white fill for small resting controls (cfg buttons on cards) —
+     between --neutral-dim (near-invisible hint) and --neutral-fill (solid
+     container read). Was hardcoded per-file before centralizing. */
+  --neutral-fill-subtle: rgba(255, 255, 255, 0.06);
+
+  /* Shared hover-state fill for neutral (non-accent) controls — action
+     buttons on cards, cfg buttons, etc. One value instead of each file
+     picking its own opacity by eye. */
+  --neutral-hover: rgba(255, 255, 255, 0.10);
+
+  /* Dark scrim behind floating controls on top of images/thumbnails
+     (character card action buttons) — needs to be opaque-ish black
+     regardless of theme so icons stay legible over any image content,
+     not tied to --surface-* since those are theme-relative. */
+  --overlay-scrim: rgba(0, 0, 0, 0.45);
+
+  /* Near-opaque backdrop for full-screen blocking overlays (model switch
+     loader) — built from --bg rather than plain black so it tints toward
+     the page's own dark tone instead of a generic black scrim. */
+  --modal-scrim: rgba(12, 12, 16, 0.85);
+
+  /* Barely-there hover fill for already-neutral resting cards (model
+     cards) — one step above --neutral-dim, still far below --neutral-hover. */
+  --neutral-hover-faint: rgba(255, 255, 255, 0.02);
+
+  /* ── Icon filters ──
+     Note: For monochromatic PNG/SVG icons, prefer `mask-image` with `background-color: var(--gold)` 
+     where possible to avoid hardcoding CSS filter chains. Filters retained below for backwards compatibility. */
+  --icon-filter-gold:       invert(62%) sepia(28%) saturate(950%) hue-rotate(355deg) brightness(92%) contrast(88%);
+  --icon-filter-gold-hover: invert(76%) sepia(25%) saturate(800%) hue-rotate(355deg) brightness(95%) contrast(88%);
+  --icon-filter-nav-idle:   brightness(0) saturate(100%) invert(60%);
+  --icon-filter-nav-active: brightness(0) saturate(100%) invert(75%) sepia(50%) saturate(400%) hue-rotate(5deg);
+  --icon-filter-white:      invert(1);
+  --icon-filter-danger-hover: invert(35%) sepia(80%) saturate(2000%) hue-rotate(335deg) brightness(95%) contrast(95%);
+
+  /* Neutral ring for loading spinners (btn-loading) — white at low
+     opacity so it reads against any button background, paired with
+     currentColor for the moving arc. */
+  --spinner-track: rgba(255, 255, 255, 0.3);
+
+  /* ── Accent: Violet ── */
+  --violet:            #ab9ef7;
+  --violet-dim:        rgba(171, 158, 247, 0.10);
+  --violet-glow:       rgba(171, 158, 247, 0.22);
+  --violet-border:     rgba(171, 158, 247, 0.30);
+  --violet-dim-strong: rgba(171, 158, 247, 0.16);
+
+  /* ── Semantic ── */
+  --danger:            #e0776e;
+  --danger-dim:        rgba(224, 119, 110, 0.10);
+  --danger-dim-strong: rgba(224, 119, 110, 0.18);
+  --danger-border:     rgba(224, 119, 110, 0.28);
+
+  --success:           #6fbf8a;
+  --success-light:     #8fd4a5;
+  --success-dim:       rgba(111, 191, 138, 0.10);
+  --success-border:    rgba(111, 191, 138, 0.28);
+
+  --warning:           #d9a54f;
+  --warning-light:     #e2b86f;
+  --warning-dim:       rgba(217, 165, 79, 0.10);
+  --warning-dim-strong:rgba(217, 165, 79, 0.18);
+  --warning-border:    rgba(217, 165, 79, 0.28);
+
+  /* ── Text ── */
+  --text:        #e0dbd4;   /* primary */
+  --text-2:      #a8a4b8;   /* secondary */
+  --text-muted:  #827d99;   /* disabled, placeholders — updated to #827d99 for WCAG 2.1 AA compliance */
+  --text-ghost:  #45414f;   /* barely visible */
+
+  /* ── Typography ── */
+  --font-ui:    'Outfit', sans-serif;
+  --font-mono:  'IBM Plex Mono', monospace;
+  --font-serif: 'Playfair Display', serif;
+
+  --text-xs:   11px;
+  --text-sm:   12px;
+  --text-base: 14px;
+  --text-md:   15px;
+  --text-lg:   18px;
+  --text-xl:   22px;
+  --text-2xl:  28px;
+
+  --leading-tight: 1.3;
+  --leading-base:  1.6;
+  --leading-loose: 1.8;
+
+  --tracking-tight:   -0.01em;
+  --tracking-base:     0em;
+  --tracking-wide:     0.04em;
+  --tracking-wider:    0.08em;
+  --tracking-widest:   0.14em;
+
+  /* ── Spacing ── */
+  --space-1:   4px;
+  --space-2:   8px;
+  --space-3:   12px;
+  --space-4:   16px;
+  --space-5:   20px;
+  --space-6:   24px;
+  --space-7:   28px;
+  --space-8:   32px;
+  --space-10:  40px;
+  --space-12:  48px;
+
+  /* ── Radii ── */
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   14px;
+  --radius-xl:   18px;
+  --radius-full: 9999px;
+
+  /* ── Shadows ── */
+  --shadow-sm:     0 2px 8px  rgba(0, 0, 0, 0.40);
+  --shadow-md:     0 4px 16px rgba(0, 0, 0, 0.50);
+  --shadow-lg:     0 8px 32px rgba(0, 0, 0, 0.60);
+  --shadow-gold:   0 0 20px var(--gold-glow);
+  --shadow-violet: 0 0 20px var(--violet-glow);
+  --token-glow:    0 0 6px 0 var(--gold-glow);
+
+  /* ── Motion ── */
+  --dur-fast:    120ms;
+  --dur:         180ms;
+  --dur-slow:    280ms;
+  --dur-drawer:  300ms;
+  --ease:        cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-out:    cubic-bezier(0.16, 1.00, 0.30, 1.00);
+  --ease-in:     cubic-bezier(0.40, 0.00, 1.00, 1.00);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0.00, 1.00);
+  --ease-spring:      cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-spring-soft: cubic-bezier(0.22, 1.28, 0.36, 1);
+
+  /* ── Layout ── */
+  --sidebar-w:    252px;
+  --bottom-nav-h: 60px;
+  --topbar-h:     52px;
+  --token-bar-h:  28px;
+
+  /* ── Avatars ── */
+  --avatar-sm: 28px;
+  --avatar-md: 38px;
+  --avatar-lg: 48px;
+  --avatar-xl: 80px;
+
+  /* ── Z-index ── */
+  --z-base:    1;
+  --z-sticky:  10;
+  --z-overlay: 100;
+  --z-drawer:  200;
+  --z-modal:   300;
+  --z-toast:   400;
+  --z-grain:   999;
+}

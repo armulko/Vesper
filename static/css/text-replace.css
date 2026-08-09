@@ -1,0 +1,63 @@
+/* ═══════════════════════════════════════════════════
+   VESPER — Text Replace
+   Split out of components.css (2nd great refactoring).
+═══════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════
+   TEXT REPLACE
+═══════════════════════════════════════════════════ */
+.replace-output {
+  position: relative;
+}
+
+.replace-copy-btn {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  background: var(--surface-3);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
+  transition:
+    border-color var(--dur) var(--ease),
+    color var(--dur) var(--ease),
+    background var(--dur) var(--ease);
+}
+
+.replace-copy-btn:hover {
+  border-color: var(--gold-border);
+  color: var(--gold);
+  background: var(--gold-dim);
+}
+
+.replace-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.replace-row .form-input {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+.replace-row-remove {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.replace-row-remove:hover {
+  border-color: var(--danger-border);
+  color: var(--danger);
+  background: var(--danger-dim);
+}
