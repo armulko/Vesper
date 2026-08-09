@@ -220,6 +220,15 @@ async function saveSettings() {
         return;
     }
 
+    // Same 5-minute floor the backend watchdog enforces (routes/system.py) —
+    // catch it here too so the user finds out before saving, not after
+    // their PC shuts down on them a minute after stepping away.
+    const timeoutHours = fullResult.system?.INACTIVITY_TIMEOUT_HOURS;
+    if (typeof timeoutHours === 'number' && timeoutHours > 0 && timeoutHours < (5 / 60)) {
+        showCustomAlert('Inactivity timeout is set dangerously low (under 5 minutes) — your PC would shut down almost immediately after you stop using it. Set it to 0 to disable, or use a larger value.');
+        return;
+    }
+
     let restartNeeded = false;
     for (const [sec, fields] of Object.entries(RESTART_REQUIRED_FIELDS)) {
         for (const field of fields) {
@@ -315,4 +324,3 @@ async function shutdownPC() {
         }
     });
 }
-

@@ -6,22 +6,35 @@
 
 let _draftSaveTimer = null;
 let _draftDirty = false;
+// Tracks which character the pending draft actually belongs to. Without
+// this, a fast character A -> character B switch within the 500ms debounce
+// window would flush character A's leftover text under character B's id
+// (_flushDraft reads currentCharacter at flush time, not schedule time).
+let _draftOwnerId = null;
 
 function _scheduleDraftSave() {
     _draftDirty = true;
+    _draftOwnerId = currentCharacter?.vesper?.id ?? null;
     clearTimeout(_draftSaveTimer);
     _draftSaveTimer = setTimeout(_flushDraft, 500);
 }
 
 async function _flushDraft() {
     clearTimeout(_draftSaveTimer);
-    if (!_draftDirty || !currentCharacter) return;
+    if (!_draftDirty || _draftOwnerId == null) return;
     const userInput = document.getElementById('userInput');
     const text = userInput ? userInput.value : '';
+    const ownerId = _draftOwnerId;
     _draftDirty = false;
-    if (currentCharacter.vesper) currentCharacter.vesper.draft = text;
+    _draftOwnerId = null;
+    // Only touch currentCharacter.vesper.draft in-memory if it's still the
+    // same character — otherwise this would write into whichever character
+    // the user has since switched to.
+    if (currentCharacter?.vesper?.id === ownerId) {
+        currentCharacter.vesper.draft = text;
+    }
     try {
-        await fetch(`${BASE_URL}/save_draft/${currentCharacter.vesper.id}`, {
+        await fetch(`${BASE_URL}/save_draft/${ownerId}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ draft: text })
@@ -31,6 +44,7 @@ async function _flushDraft() {
 
 function _clearDraft() {
     _draftDirty = false;
+    _draftOwnerId = null;
     clearTimeout(_draftSaveTimer);
     if (currentCharacter?.vesper) currentCharacter.vesper.draft = '';
     if (currentCharacter?.vesper?.id != null) {
@@ -63,11 +77,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Flush on tab close / refresh — beforeunload can't await fetch, so
     // fire a best-effort keepalive request that survives page teardown.
     window.addEventListener('beforeunload', () => {
-        if (!_draftDirty || !currentCharacter?.vesper?.id) return;
+        if (!_draftDirty || _draftOwnerId == null) return;
         const text = userInput ? userInput.value : '';
         try {
             navigator.sendBeacon(
-                `${BASE_URL}/save_draft/${currentCharacter.vesper.id}`,
+                `${BASE_URL}/save_draft/${_draftOwnerId}`,
                 new Blob([JSON.stringify({ draft: text })], { type: 'application/json' })
             );
         } catch (e) { /* best effort */ }

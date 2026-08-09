@@ -228,11 +228,11 @@ def update_character(character_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@characters_bp.route('/delete_character/<int:character_id>', methods=['DELETE'])
+@characters_bp.route('/delete_character/<character_id>', methods=['DELETE'])
 def delete_character(character_id):
     try:
         characters = load_characters()
-        characters = [c for c in characters if _char_id(c) != character_id]
+        characters = [c for c in characters if str(_char_id(c)) != str(character_id)]
         save_characters(characters)
         
         delete_avatar(character_id)
@@ -250,7 +250,7 @@ def delete_character(character_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@characters_bp.route('/get_chat_history/<int:character_id>', methods=['GET'])
+@characters_bp.route('/get_chat_history/<character_id>', methods=['GET'])
 def get_chat_history(character_id):
     try:
         return jsonify(load_history(character_id))
@@ -258,7 +258,7 @@ def get_chat_history(character_id):
         return jsonify({'error': str(e)}), 500
 
 
-@characters_bp.route('/save_chat_history/<int:character_id>', methods=['POST'])
+@characters_bp.route('/save_chat_history/<character_id>', methods=['POST'])
 def save_chat_history(character_id):
     try:
         chat_data = request.json
@@ -268,7 +268,7 @@ def save_chat_history(character_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@characters_bp.route('/clear_chat_history/<int:character_id>', methods=['POST'])
+@characters_bp.route('/clear_chat_history/<character_id>', methods=['POST'])
 def clear_chat_history(character_id):
     try:
         save_history(character_id, [])
@@ -277,7 +277,7 @@ def clear_chat_history(character_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@characters_bp.route('/get_notes/<int:character_id>', methods=['GET'])
+@characters_bp.route('/get_notes/<character_id>', methods=['GET'])
 def get_notes(character_id):
     try:
         return jsonify({'notes': load_notes(character_id)})
@@ -285,7 +285,7 @@ def get_notes(character_id):
         return jsonify({'error': str(e)}), 500
 
 
-@characters_bp.route('/save_notes/<int:character_id>', methods=['POST'])
+@characters_bp.route('/save_notes/<character_id>', methods=['POST'])
 def save_notes(character_id):
     try:
         data = request.json

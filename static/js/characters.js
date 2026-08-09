@@ -211,6 +211,12 @@ function saveCharacter() {
     if (!description) { showCustomAlert('Enter the character description'); return; }
     if (!first_mes) { showCustomAlert('Enter the first message'); return; }
 
+    const extensionsResult = _collectExtensions();
+    if (!extensionsResult.valid) {
+        showCustomAlert('Extensions field is not valid JSON — fix it before saving. Your input was not discarded.');
+        return;
+    }
+
     const charId = editingCharacterId || Date.now();
     const character = {
         vesper: {
@@ -235,7 +241,7 @@ function saveCharacter() {
             tags:                     (document.getElementById('characterTags')?.value || '').split(',').map(t => t.trim()).filter(Boolean),
             creator:                  document.getElementById('characterCreator')?.value.trim() || '',
             character_version:        document.getElementById('characterVersion')?.value.trim() || '',
-            extensions:               _collectExtensions()
+            extensions:               extensionsResult.value
         },
         image: characterImage,
         id: charId,
@@ -726,15 +732,19 @@ function _collectCharacterBook() {
     return { entries };
 }
 
+// Returns {value, valid} instead of silently discarding bad input on
+// parse failure — the caller (saveCharacter) is responsible for blocking
+// the save and telling the user, rather than this function quietly
+// replacing their typed JSON with {} and hoping they notice the alert.
 function _collectExtensions() {
     const raw = document.getElementById('characterExtensions')?.value.trim();
-    if (!raw) return {};
+    if (!raw) return { value: {}, valid: true };
     try {
         const parsed = JSON.parse(raw);
-        return (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : {};
+        const isObj = parsed && typeof parsed === 'object' && !Array.isArray(parsed);
+        return { value: isObj ? parsed : {}, valid: isObj };
     } catch (e) {
-        showCustomAlert('Extensions field is not valid JSON — saved as empty object instead');
-        return {};
+        return { value: null, valid: false };
     }
 }
 

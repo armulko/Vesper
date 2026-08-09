@@ -107,6 +107,17 @@ def update_persona(persona_id):
     try:
         data = request.json
         image_data = data.pop('image', None)
+
+        # has_avatar must be set here explicitly, not left for the next
+        # GET /get_personas to backfill — between this write and that next
+        # read, `data` as saved to disk would otherwise carry a missing/
+        # stale flag. Same pattern already used in save_character/
+        # update_character (routes/characters.py).
+        if image_data:
+            data['has_avatar'] = True
+        else:
+            data['has_avatar'] = os.path.exists(get_avatar_path(persona_id))
+
         personas = load_personas()
         for i, p in enumerate(personas):
             if p['id'] == persona_id:

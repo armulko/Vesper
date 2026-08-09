@@ -58,7 +58,14 @@ def _watchdog_loop():
             timeout_hours = cfg('system', 'INACTIVITY_TIMEOUT_HOURS')
         except Exception:
             timeout_hours = 0
-        if not timeout_hours:
+        # A tiny-but-nonzero value (typo like 0.01 instead of 0) is
+        # indistinguishable from "meant to disable this" for basically
+        # every real use case, and the failure mode is the PC turning
+        # itself off within a minute of the user stepping away. Treat
+        # anything under 5 minutes as effectively "off" rather than a
+        # deliberately short timeout.
+        MIN_TIMEOUT_HOURS = 5 / 60
+        if not timeout_hours or timeout_hours < MIN_TIMEOUT_HOURS:
             continue
         with _activity_lock:
             idle_seconds = time.time() - _last_activity

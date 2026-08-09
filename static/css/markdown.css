@@ -46,17 +46,8 @@
     letter-spacing: 0.02rem;
 }
 
-@keyframes tokenAppear {
-    from {
-        opacity: 0;
-        filter: blur(2px);
-    }
-    to {
-        opacity: 1;
-        filter: blur(0);
-    }
-}
-
-.token-appear {
-    animation: tokenAppear 0.18s ease-out forwards;
-}
+/* tokenAppear @keyframes + .token-appear live in chat.css only now —
+   this file used to redefine both with different values (blur-based here
+   vs translateY-based in chat.css), and which one actually applied was
+   silently decided by CSS load order in main.css rather than by design.
+   Removed the duplicate so there's exactly one source of truth. */
