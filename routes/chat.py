@@ -50,9 +50,17 @@ def get_suggest_prompt():
 def build_system_prompt(character_prompt):
     return f"{cfg('prompts', 'DEFAULT_SYSTEM_RULES')}\n\nDESCRIPTION:\n{character_prompt}"
 
-def build_prompt(system_block, lines, char_name, ooc_command=None, post_history_instructions=None):
+def build_prompt(system_block, lines, char_name, ooc_command=None, post_history_instructions=None, character_notes=None):
     history_block = "\n".join(lines).replace("{", "{{").replace("}", "}}")
     instruction_block = history_block
+    if character_notes:
+        # Moved here from system_block on purpose: notes buried at the start of a
+        # multi-thousand-token prompt get drowned out by history. Placing them
+        # right before generation (OOC-style, same as ooc_command below) gives
+        # them the same recency weight that made /cmd reliable.
+        safe_notes = character_notes.replace("{", "{{").replace("}", "}}")
+        notes_template = cfg('prompts', 'NOTES_TEMPLATE')
+        instruction_block += "\n" + notes_template.format(content=safe_notes) + "\n"
     if post_history_instructions:
         # Escaped the same way as the OOC note below — it's user/creator
         # text riding through a .format() call downstream via prompt_template,
@@ -61,7 +69,8 @@ def build_prompt(system_block, lines, char_name, ooc_command=None, post_history_
         instruction_block += f"\n[{char_name}'s ongoing instructions: {safe_phi}]\n"
     if ooc_command:
         safe_ooc = ooc_command.replace("{", "{{").replace("}", "}}")
-        instruction_block += f"\n[SYSTEM_NOTE: {safe_ooc}. Follow this note immediately in your next response.]\n"
+        ooc_template = cfg('prompts', 'OOC_TEMPLATE')
+        instruction_block += "\n" + ooc_template.format(content=safe_ooc) + "\n"
     t = get_active_llm_cfg().get('chat_template', {})
     return t.get('prompt_template', '{system_start}{system}{system_end}{inst_start}{instruction}{inst_end}{char_name}:').format(
         system_start=t.get('system_start', ''),
@@ -93,21 +102,20 @@ def chat():
     system_prompt = replace_placeholders(system_prompt, char_name, user_name)
     system_block = build_system_prompt(system_prompt)
     system_block = replace_placeholders(system_block, char_name, user_name)
-    if character_notes:
-        system_block += f"\n\n[PERSISTENT NOTES — FOLLOW AS ABSOLUTE RULES, NO EXCEPTIONS]:\n{character_notes}"
 
+    character_notes = replace_placeholders(character_notes, char_name, user_name)
     post_history_instructions = replace_placeholders(post_history_instructions, char_name, user_name)
 
     llm_cfg = get_active_llm_cfg()
     lines = conversation_history.strip().split("\n")
-    full_prompt = build_prompt(system_block, lines, char_name, ooc_command, post_history_instructions)
+    full_prompt = build_prompt(system_block, lines, char_name, ooc_command, post_history_instructions, character_notes)
     token_count = count_tokens_text(full_prompt)
     max_prompt = llm_cfg.get('context_size', 4096) - llm_cfg.get('max_answer_tokens', 300)
 
     if token_count > max_prompt:
         while token_count > max_prompt and len(lines) > 2:
             lines.pop(0)
-            full_prompt = build_prompt(system_block, lines, char_name, ooc_command, post_history_instructions)
+            full_prompt = build_prompt(system_block, lines, char_name, ooc_command, post_history_instructions, character_notes)
             token_count = count_tokens_text(full_prompt)
 
     def generate():

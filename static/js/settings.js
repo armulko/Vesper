@@ -31,7 +31,9 @@ const SETTINGS_SCHEMA = [
             { key: "DEFAULT_SYSTEM_RULES", label: "System Rules", type: "textarea" },
             { key: "SUMMARIZE_PROMPT", label: "Summarize Prompt", type: "textarea" },
             { key: "META_SUMMARIZE_PROMPT", label: "Meta-Summarize Prompt", type: "textarea" },
-            { key: "SUGGEST_SYSTEM_PROMPT", label: "Suggest Prompt", type: "textarea" }
+            { key: "SUGGEST_SYSTEM_PROMPT", label: "Suggest Prompt", type: "textarea" },
+            { key: "NOTES_TEMPLATE", label: "Notes OOC Template (use {content})", type: "textarea" },
+            { key: "OOC_TEMPLATE", label: "Command OOC Template (use {content})", type: "textarea" }
         ]
     }
 ];
