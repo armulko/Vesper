@@ -47,6 +47,18 @@ def get_suggest_prompt():
 
     return jsonify({'systemPrompt': prompt})
 
+def _fill_content_template(template, value):
+    # .format(content=...) doesn't work here: Python's str.format treats
+    # {{ as an escaped literal brace, not a placeholder — so a template
+    # written as "...{{content}}..." would never get substituted, it'd
+    # just print literal {content} in the output. Plain string replace
+    # sidesteps that: try the double-brace form first (the default going
+    # forward), fall back to the single-brace form for older templates
+    # that were written before this switch.
+    if '{{content}}' in template:
+        return template.replace('{{content}}', value)
+    return template.replace('{content}', value)
+
 def build_system_prompt(character_prompt):
     return f"{cfg('prompts', 'DEFAULT_SYSTEM_RULES')}\n\nDESCRIPTION:\n{character_prompt}"
 
@@ -60,7 +72,7 @@ def build_prompt(system_block, lines, char_name, ooc_command=None, post_history_
         # them the same recency weight that made /cmd reliable.
         safe_notes = character_notes.replace("{", "{{").replace("}", "}}")
         notes_template = cfg('prompts', 'NOTES_TEMPLATE')
-        instruction_block += "\n" + notes_template.format(content=safe_notes) + "\n"
+        instruction_block += "\n" + _fill_content_template(notes_template, safe_notes) + "\n"
     if post_history_instructions:
         # Escaped the same way as the OOC note below — it's user/creator
         # text riding through a .format() call downstream via prompt_template,
@@ -70,7 +82,7 @@ def build_prompt(system_block, lines, char_name, ooc_command=None, post_history_
     if ooc_command:
         safe_ooc = ooc_command.replace("{", "{{").replace("}", "}}")
         ooc_template = cfg('prompts', 'OOC_TEMPLATE')
-        instruction_block += "\n" + ooc_template.format(content=safe_ooc) + "\n"
+        instruction_block += "\n" + _fill_content_template(ooc_template, safe_ooc) + "\n"
     t = get_active_llm_cfg().get('chat_template', {})
     return t.get('prompt_template', '{system_start}{system}{system_end}{inst_start}{instruction}{inst_end}{char_name}:').format(
         system_start=t.get('system_start', ''),

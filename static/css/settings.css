@@ -354,6 +354,18 @@
   gap: var(--space-2);
 }
 
+/* Dimmed, non-interactive state either while save/restart is in flight,
+   or while a required tag (e.g. {{content}} in the OOC templates — see
+   `required: true` in SETTINGS_SCHEMA) is missing from a field (see
+   _updateSaveBtnState in settings.js). */
+.settings-save-btn:disabled,
+.settings-save-btn.save-btn-blocked {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+  filter: grayscale(0.4);
+}
+
 /* ── Stagger-in for the Settings view ──
    Same restart-reliability mechanism as the chat message / grid card
    reveals (remove → reflow → re-add from JS, paused → running via a
@@ -487,4 +499,83 @@
   font-size: var(--text-xs);
   letter-spacing: var(--tracking-wide);
   color: var(--text-muted);
+}
+
+/* Positioned ancestor for the measuring clone (see .settings-textarea-clone
+   below) — it uses position:absolute and needs this to anchor to
+   .form-group specifically, not whatever positioned element happens to
+   sit further up the tree. */
+.form-group {
+  position: relative;
+}
+
+/* Invisible measuring/highlight layer sitting exactly on top of
+   .settings-textarea — same box, same font metrics. Its own text is
+   fully transparent (real textarea text renders normally on top of it,
+   uncolored) — only .settings-placeholder-highlight spans inside it get
+   a visible background, giving highlights glued to wherever each
+   recognized tag sits without ever touching the actual text color. */
+.settings-textarea-clone {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow: hidden;
+}
+
+/* Tag highlight — background only, text stays whatever color the real
+   textarea already renders it in (this span's own text is transparent,
+   per .settings-textarea-clone above). One shared style for every
+   recognized tag in a field (no per-tag color split) — the tooltip on
+   hover is what distinguishes which tag a given highlight is. */
+.settings-placeholder-highlight {
+  background: var(--info-dim-strong);
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px var(--info-border);
+  cursor: help;
+}
+
+/* Shared opaque tooltip popup — replaces the native title-attribute
+   bubble. Solid surface background (not a translucent --info-dim like
+   the highlight/icon) so the explanation text stays fully legible
+   regardless of what's behind it. Fixed positioning: JS sets top/left
+   in viewport coordinates directly (see _showTooltip). */
+.settings-tooltip {
+  position: fixed;
+  z-index: var(--z-toast);
+  max-width: 280px;
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-4);
+  border: 1px solid var(--info-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  color: var(--text);
+  font-size: var(--text-sm);
+  line-height: var(--leading-base);
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+  pointer-events: none;
+}
+
+.settings-tooltip.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Shown under a field when a required tag (see _checkRequiredTags in
+   settings.js) is missing from its text — most tags are optional and
+   never trigger this, only ones explicitly marked required: true. */
+.settings-placeholder-warn {
+  font-size: var(--text-sm);
+  color: var(--danger);
+  margin-top: var(--space-1);
+  font-weight: 500;
+}
+
+.settings-field-invalid {
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 0 1px var(--danger);
 }

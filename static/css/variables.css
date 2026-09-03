@@ -21,6 +21,7 @@
   /* ── Accent HSL Channels (for flexible opacity / color-mix) ── */
   --gold-hsl:    35, 38%, 54%;
   --violet-hsl:  249, 83%, 79%;
+  --info-hsl:    205, 70%, 62%;
   --danger-hsl:  5, 68%, 65%;
   --success-hsl: 140, 39%, 59%;
   --warning-hsl: 37, 65%, 58%;
@@ -113,6 +114,15 @@
   --violet-glow:       rgba(171, 158, 247, 0.22);
   --violet-border:     rgba(171, 158, 247, 0.30);
   --violet-dim-strong: rgba(171, 158, 247, 0.16);
+
+  /* ── Accent: Info (sky blue) — used for inline hint/tooltip markers,
+     distinct from Violet (which reads as a stronger UI-state accent
+     elsewhere) and from Gold (reserved for selected/active state). */
+  --info:              #6fa8d9;
+  --info-dim:          rgba(111, 168, 217, 0.10);
+  --info-glow:         rgba(111, 168, 217, 0.22);
+  --info-border:       rgba(111, 168, 217, 0.30);
+  --info-dim-strong:   rgba(111, 168, 217, 0.16);
 
   /* ── Semantic ── */
   --danger:            #e0776e;

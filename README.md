@@ -37,6 +37,14 @@ Fully independent processes — selecting/unloading one never touches the other.
 5. **Rendering (client):** `renderStreamChunk()` in `chat.js` intercepts each token; char-by-char parser checks for italic markers (`*`) and OOC commands (`/cmd`), prevents HTML tags breaking mid-token. `appendTextNode()` collapses runs of blank lines live via a `lastWasBr` flag, so multiple empty lines never render even mid-stream.
 6. **Completion:** on `done` flag, `llm_lock` released. Text run through `normalizeStreamedText()` (trim + collapse `\n{2,}` → `\n`) before being saved to `histories/<id>.json` — clean, not raw. Token counter updates, UI unlocks.
 
+### 3.1. Configurable OOC Templates (`routes/chat.py`, `settings.json`)
+
+Character notes and `/cmd` OOC commands are both injected as an OOC-style `[SYSTEM_NOTE: ...]` block, placed in `instruction_block` right before generation (not in `system_block`, which sits far from the end of a multi-thousand-token prompt and loses recency weight against the history in between). Wrapper text is user-editable in Settings → Prompts rather than hardcoded:
+
+- `data/settings.json` → `prompts.NOTES_TEMPLATE` / `prompts.OOC_TEMPLATE` — each a string containing a `{{content}}` placeholder (single-brace `{content}` also accepted as a fallback, for templates written before this switch).
+- `build_prompt()` in `routes/chat.py` fills the template via `_fill_content_template()` — plain string `.replace()`, not `str.format()` (Python's `.format()` treats `{{` as an escaped literal brace rather than a placeholder, so it can't substitute into a `{{content}}`-style template).
+- Settings UI (`settings.js`) validates both fields live: a `{content}`/`{{content}}` background highlight tracks the tag's position inside the textarea (measured via an invisible cloned `<div>` overlay, not a real DOM change to the textarea itself — keeps native undo/redo, caret placement, and text selection intact), a small marker floats near it, and hovering either the marker or the highlighted tag itself shows a custom tooltip explaining what the tag does. If the tag is missing from either field, Save is disabled (dimmed, `pointer-events: none`) until it's restored — checked live on every keystroke, not just on click.
+
 ### 4. Frontend Model-State Flags
 
 `state.js` tracks two independent booleans — `isLlmLoaded`, `isSdLoaded` — from `/get_model_type`'s `llm_loaded`/`sd_loaded` fields. Replaces an old single `currentModelType` enum (`'llm'|'image'|null`) that could only reflect whichever model loaded *last*, hiding the other from the UI once both became loadable. `chat.py`'s route guards fixed the same way — check `get_llm()` directly instead of comparing a shared mode string. Legacy `model_type` field still returned by the endpoint but unused by the client.
@@ -173,11 +181,11 @@ Persona CRUD, mirrors `characters.js` patterns, reuses its fuzzy-search utilitie
 - `personas.json` — persona list; same `default_avatar` field but root-level (no `vesper` wrapper).
 - `avatars/default/` — fixed SVG pool (`1.svg`–`5.svg`), served via `GET /default_avatar/<filename>`.
 - `app_state.json` — last active character/persona/open tab.
-- `settings.json` — grouped by section: `system` (incl. `LLAMA_SERVER_URL`, `INACTIVITY_TIMEOUT_HOURS`), `generation` (incl. `DEFAULT_CONTEXT_SIZE`), `prompts`, `models` (selected filenames). `LLAMA_SERVER_URL` lives under `system` not `models` despite the name, so it's reachable from the settings UI.
+- `settings.json` — grouped by section: `system` (incl. `LLAMA_SERVER_URL`, `INACTIVITY_TIMEOUT_HOURS`), `generation` (incl. `DEFAULT_CONTEXT_SIZE`), `prompts` (incl. `NOTES_TEMPLATE`/`OOC_TEMPLATE`, see [Configurable OOC Templates](#31-configurable-ooc-templates-routeschatpy-settingsjson)), `models` (selected filenames). `LLAMA_SERVER_URL` lives under `system` not `models` despite the name, so it's reachable from the settings UI.
 - `model_configs.json` — per-model config, keyed by filename, validated via `model_autoconfig.validate_model_cfg`, auto-populated via `autodetect_llm_cfg` when missing/broken.
 - `model_layer_cache.json` — cached per-layer GGUF tensor sizes, keyed by absolute file path; invalidated on size/mtime change (`layer_weight_cache.py`, see Layer-Fitting Algorithm).
 - `histories/<id>.json` — chat history per character.
-- `notes/<id>.txt` — persistent notes per character, injected into every LLM prompt as `[PERSISTENT NOTES — FOLLOW AS ABSOLUTE RULES, NO EXCEPTIONS]`.
+- `notes/<id>.txt` — persistent notes per character. Injected near the end of the prompt (alongside `ooc_command`, not in `system_block`) via a user-configurable OOC-style template — see [Configurable OOC Templates](#configurable-ooc-templates-routeschatpy-settingsjson) below.
 - `keyboard_layouts.json` — position-indexed keyboard layout tables for search autocorrection; see [Keyboard Layout Search Correction](#keyboard-layout-search-correction-staticjslayoutfixjs). Lives outside `static/`, deliberately not open-served wholesale — `routes/data_files.py` whitelists it by filename rather than exposing the whole `data/` directory (which also holds `settings.json`).
 
 ---
@@ -278,7 +286,7 @@ Full flat index. Files with a dedicated writeup elsewhere in this doc link back 
 - `layer_weight_cache.py` — caches `layer_weights.py` output by file path; see [Layer-Fitting Algorithm](#35-layer-fitting-algorithm-model_logiclayer_weightspy-layer_weight_cachepy).
 
 **`routes/`**
-- `routes/chat.py` — `/chat`, token counting, summarization/meta-summarization endpoints.
+- `routes/chat.py` — `/chat`, token counting, summarization/meta-summarization endpoints; see [Configurable OOC Templates](#31-configurable-ooc-templates-routeschatpy-settingsjson) for the notes/`/cmd` injection mechanism.
 - `routes/characters.py` — character CRUD, chat history, notes, PNG chara-card import.
 - `routes/personas.py` — user persona CRUD.
 - `routes/models.py` — model selection/unload endpoints and model listing.
@@ -313,7 +321,7 @@ Full flat index. Files with a dedicated writeup elsewhere in this doc link back 
 - `modelManager.js` — model switching UI and per-model config modal. Split from old `main.js`.
 - `textReplace.js` — standalone find/replace text view. Split from old `main.js`.
 - `tokenCounter.js` — character-form token counters; split out from an inline `<script>` in `index.html`.
-- `settings.js` — settings form generation, save, and restart flow.
+- `settings.js` — settings form generation, save, and restart flow; see [Configurable OOC Templates](#31-configurable-ooc-templates-routeschatpy-settingsjson) for the `{{content}}` validation/highlight/tooltip logic.
 - `app.js` — app orchestrator: state restore, token bar, `DOMContentLoaded` init. What's left of old `main.js`.
 
 ### Frontend — CSS (`static/css/`)
