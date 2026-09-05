@@ -14,7 +14,7 @@ function saveAppState() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            currentCharacterId: currentCharacter ? currentCharacter.vesper.id : null,
+            currentCharacterId: currentCharacter ? currentCharacter.id : null,
             currentPersonaId: currentPersona ? currentPersona.id : null,
             currentView: currentView
         })
@@ -26,15 +26,15 @@ async function updateTokenCount() {
     const counter = document.getElementById('tokenCounter');
     if (!counter) return;
 
-    let systemPrompt = `You are ${currentCharacter.data.name}.`;
-    if (currentCharacter.data.description) systemPrompt += ` ${currentCharacter.data.description}`;
+    let systemPrompt = `You are ${currentCharacter.name}.`;
+    if (currentCharacter.description) systemPrompt += ` ${currentCharacter.description}`;
     if (currentPersona) {
         const personaName = currentPersona.name || 'User';
         systemPrompt += `\n\nYou are talking with ${personaName}.`;
         if (currentPersona.description) systemPrompt += ` ${currentPersona.description}`;
     }
 
-    const characterName = currentCharacter.data.name;
+    const characterName = currentCharacter.name;
     const personaName = currentPersona ? currentPersona.name : 'User';
 
     let historyText = '';
@@ -189,4 +189,3 @@ const _SD_DEFAULTS = {
 
 let _modelConfigFilename = null;
 let _modelConfigPendingSwitch = null;
-

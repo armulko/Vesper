@@ -55,6 +55,7 @@ const SETTINGS_SCHEMA = [
                 { tag: "{{char_name}}", hint: "Replaced with the character's name." },
                 { tag: "{{char_instructions}}", hint: "Replaced with the character's system rules/instructions." }
             ]) },
+            { key: "LOREBOOK_TOKEN_BUDGET", label: "Lorebook Token Budget (max tokens injected per message, 0 = unlimited)", type: "number" },
             { key: "NOTES_TEMPLATE", label: "Notes OOC Template", type: "textarea", tags: _expandTags([
                 { tag: "{{content}}", hint: "Replaced with the character's notes text. Required — without it, the notes text never actually reaches the model.", required: true }
             ]) },

@@ -1,10 +1,13 @@
 // chatNotes.js
-// Character notes panel (in-chat sidebar notes, separate from summaries).
-// Split out of chat.js (2nd great refactoring).
+// Notes переехали с уровня персонажа на уровень чата (см. обсуждение —
+// "отдельные на каждый чат"). loadCharacterNotes теперь принимает chatId,
+// не characterId — имя функции оставлено как есть (переименование по всем
+// вызовам — риск больше, чем несоответствие имени), но параметр и роут
+// теперь чётко про чат.
 
-async function loadCharacterNotes(characterId) {
+async function loadCharacterNotes(chatId) {
     try {
-        const r = await fetch(`${BASE_URL}/get_notes/${characterId}`);
+        const r = await fetch(`${BASE_URL}/get_notes/${chatId}`);
         const data = await r.json();
         _characterNotes = data.notes || '';
     } catch(e) {
@@ -18,10 +21,10 @@ async function loadCharacterNotes(characterId) {
 }
 
 async function saveCharacterNotes() {
-    if (!currentCharacter) return;
+    if (!currentChatId) return;
     const ta = document.getElementById('characterNotesInput');
     _characterNotes = ta ? ta.value : _characterNotes;
-    await fetch(`${BASE_URL}/save_notes/${currentCharacter.vesper.id}`, {
+    await fetch(`${BASE_URL}/save_notes/${currentChatId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notes: _characterNotes })
@@ -54,4 +57,3 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
-

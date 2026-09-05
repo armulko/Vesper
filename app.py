@@ -16,6 +16,9 @@ from routes.system import system_bp, start_inactivity_watchdog
 from routes.settings import settings_bp
 from routes.default_avatars import default_avatars_bp
 from routes.data_files import data_files_bp
+from routes.forks import forks_bp
+from routes.chats import chats_bp
+from routes.lorebooks import lorebooks_bp
 
 app = Flask(__name__)
 CORS(app)
@@ -29,6 +32,9 @@ app.register_blueprint(system_bp)
 app.register_blueprint(settings_bp)
 app.register_blueprint(default_avatars_bp)
 app.register_blueprint(data_files_bp)
+app.register_blueprint(forks_bp)
+app.register_blueprint(chats_bp)
+app.register_blueprint(lorebooks_bp)
 
 @app.route('/')
 def home():

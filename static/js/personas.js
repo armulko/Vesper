@@ -71,6 +71,7 @@ function _resetPersonaForm() {
     _pickAndPreviewPersonaDefaultAvatar();
     const saveBtn = document.querySelectorAll('.save-btn')[1];
     if (saveBtn) saveBtn.textContent = 'Save persona';
+    renderPersonaConnectedCharacters(null);
 }
 
 async function fetchPersonas() {
@@ -184,6 +185,8 @@ function editPersona(id, event) {
         const saveBtn = document.querySelectorAll('.save-btn')[1];
         if (saveBtn) saveBtn.textContent = 'Save changes';
 
+        renderPersonaConnectedCharacters(id);
+
         switchView('createPersona');
         _autoResizeTextarea(document.getElementById('personaDescription'));
     }).catch(error => console.error('Error loading persona:', error));
@@ -197,9 +200,95 @@ function deletePersona(id, event) {
             if (data.success) {
                 if (currentPersona && currentPersona.id === id) currentPersona = null;
                 loadPersonaList();
-            } else showCustomAlert('Delete error');
+            } else if (data.needs_confirmation) {
+                // Персона фигурирует в data.affected_chats чатах — бэкенд
+                // отказался удалять без явного подтверждения (см.
+                // routes/personas.py: delete_persona, ON DELETE CASCADE на
+                // chats.persona_id). Второй showConfirm — явное двойное
+                // подтверждение для деструктивного действия, которое унесёт
+                // с собой историю переписки, не только саму персону.
+                showConfirm(
+                    `This persona is used in ${data.affected_chats} chat(s). Deleting it will delete those chats too. Continue?`,
+                    () => {
+                        fetch(`${BASE_URL}/delete_persona/${id}?force=true`, { method: 'DELETE' })
+                        .then(r => r.json()).then(forced => {
+                            if (forced.success) {
+                                if (currentPersona && currentPersona.id === id) currentPersona = null;
+                                loadPersonaList();
+                            } else {
+                                showCustomAlert('Delete error');
+                            }
+                        }).catch(e => showCustomAlert('Error: ' + e));
+                    }
+                );
+            } else {
+                showCustomAlert('Delete error');
+            }
         }).catch(e => showCustomAlert('Error: ' + e));
     });
+}
+
+// ── Подключение персон к персонажам (N:N) ──────────────────────────
+// Грубая первая версия: список подключённых персонажей рендерится прямо
+// в форме редактирования персоны (под описанием), с кнопкой отключить.
+// Подключение новой персоны к персонажу происходит из формы персонажа
+// (характерс-сторона), не отсюда — см. соответствующий блок в
+// characters.js/HTML, когда он появится. Здесь — только просмотр +
+// отключение с текущей стороны, раз юзер уже открыл конкретную персону.
+
+async function fetchPersonaCharacters(personaId) {
+    const r = await fetch(`${BASE_URL}/persona/${personaId}/characters`);
+    return r.json();
+}
+
+async function renderPersonaConnectedCharacters(personaId) {
+    const container = document.getElementById('personaConnectedCharacters');
+    if (!container) return; // разметки может ещё не быть в HTML — не падаем
+
+    if (!personaId) {
+        container.innerHTML = '';
+        return;
+    }
+
+    container.innerHTML = '<div class="loader-spinner"></div>';
+    try {
+        const characters = await fetchPersonaCharacters(personaId);
+        if (!characters.length) {
+            container.innerHTML = '<div class="empty-state-small">Not connected to any character yet</div>';
+            return;
+        }
+        container.innerHTML = characters.map(c => `
+            <div class="connected-chip" data-character-id="${c.id}">
+                <span>${c.name}</span>
+                <button class="chip-remove-btn" onclick="disconnectPersonaFromCharacter(${personaId}, ${c.id})">×</button>
+            </div>
+        `).join('');
+    } catch (e) {
+        console.error('Error loading connected characters:', e);
+        container.innerHTML = '';
+    }
+}
+
+function disconnectPersonaFromCharacter(personaId, characterId) {
+    fetch(`${BASE_URL}/disconnect_persona`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ character_id: characterId, persona_id: personaId })
+    }).then(r => r.json()).then(data => {
+        if (data.success) {
+            renderPersonaConnectedCharacters(personaId);
+        } else {
+            showCustomAlert('Disconnect error');
+        }
+    }).catch(e => showCustomAlert('Error: ' + e));
+}
+
+function connectPersonaToCharacter(personaId, characterId) {
+    return fetch(`${BASE_URL}/connect_persona`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ character_id: characterId, persona_id: personaId })
+    }).then(r => r.json());
 }
 
 function renderPersonaCards(personas) {

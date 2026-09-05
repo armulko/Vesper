@@ -1,11 +1,131 @@
 import json
+import re
 import requests
 from flask import Blueprint, request, jsonify, Response, stream_with_context
 from model_logic.model_manager import get_llm, llm_lock
 from settings import cfg, get_active_llm_cfg
+from db import get_db
 import threading
 
 chat_bp = Blueprint('chat', __name__)
+
+
+# --- Лорбук: сканирование ключей и инъекция контента -----------------------
+#
+# Чистый строковый матчинг, без обращения к модели (см. обсуждение — это
+# программный prompt-preprocessing шаг, не LLM-задача). Работает по тем же
+# `lines`, что и остальная сборка промпта — то есть по сырому тексту истории
+# как он пришёл от фронта, ДО любых замен {{user}}/{{char}} (замена
+# происходит позже, при рендере system_block/notes/etc, но lines сюда
+# попадают нетронутыми).
+
+def _key_matches(key, scan_text_lower, scan_text_raw, case_sensitive):
+    """Одна проверка одного ключа. Ключ вида /regex/ — режим regex (та же
+    конвенция что в ST: обёрнут в слэши = паттерн, иначе — обычная
+    подстрока). Пустой/битый ключ никогда не матчится, а не роняет скан."""
+    if not key:
+        return False
+    if len(key) >= 2 and key.startswith('/') and key.endswith('/'):
+        pattern = key[1:-1]
+        try:
+            flags = 0 if case_sensitive else re.IGNORECASE
+            return re.search(pattern, scan_text_raw, flags) is not None
+        except re.error:
+            return False
+    haystack = scan_text_raw if case_sensitive else scan_text_lower
+    needle = key if case_sensitive else key.lower()
+    return needle in haystack
+
+
+def _entry_triggers(entry, scan_text_lower, scan_text_raw):
+    """keys[] матчится по OR (любой ключ триггерит), secondary_keys[] (если
+    заданы) добавляют AND поверх этого — сработает только если есть хотя бы
+    один основной ключ И хотя бы один secondary. Секонд-ключи без основных
+    ничего не триггерят сами по себе, это уточняющее условие, не альтернатива."""
+    case_sensitive = bool(entry['case_sensitive'])
+    keys = json.loads(entry['keys']) if entry['keys'] else []
+    if not any(_key_matches(k, scan_text_lower, scan_text_raw, case_sensitive) for k in keys):
+        return False
+
+    secondary_raw = entry['secondary_keys']
+    if secondary_raw:
+        secondary_keys = json.loads(secondary_raw)
+        if secondary_keys and not any(
+            _key_matches(k, scan_text_lower, scan_text_raw, case_sensitive) for k in secondary_keys
+        ):
+            return False
+    return True
+
+
+def scan_lorebooks(character_id, lines, token_budget_fn, total_token_budget=None):
+    """Возвращает (before_char_text, after_char_text) — уже склеенные строки
+    готовые для вставки в system_block, отсортированные по priority DESC и
+    урезанные под бюджет. token_budget_fn(text) -> int должен считать токены
+    тем же способом что и остальной прompt (см. count_tokens_text ниже),
+    чтобы бюджет не расходился с тем, что реально увидит модель.
+
+    total_token_budget — общий лимит на весь инжектируемый лорбук-контент
+    разом (before+after вместе). None (дефолт) значит "взять из настроек
+    юзера" — реальный ключ prompts.LOREBOOK_TOKEN_BUDGET в settings.json/
+    settings.js:SETTINGS_SCHEMA (0 в настройках = не ограничивать). Явно
+    переданное число (например в тестах) перебивает cfg().
+
+    at_depth position пока не реализован (см. обсуждение — сложная фича,
+    следующий заход) — entries с position='at_depth' сканируются и
+    матчатся как обычно, но вставляются как before_char, чтобы хотя бы не
+    потерять их полностью, а не молча дропаются.
+    """
+    if total_token_budget is None:
+        total_token_budget = cfg('prompts', 'LOREBOOK_TOKEN_BUDGET') or 0
+
+    db = get_db()
+    lorebooks = db.execute(
+        '''SELECT l.* FROM lorebooks l
+           JOIN character_lorebooks cl ON cl.lorebook_id = l.id
+           WHERE cl.character_id = ?''',
+        (character_id,)
+    ).fetchall()
+
+    if not lorebooks:
+        return '', ''
+
+    # Разные лорбуки на одном персонаже могут иметь разный scan_depth —
+    # берём максимальный, чтобы ни один entry не остался недосканирован
+    # (лишние строки в окне не вредят более "мелким" лорбукам, у них всё
+    # равно решает совпадение ключа, не размер окна).
+    max_depth = max(lb['scan_depth'] for lb in lorebooks)
+    scan_window = lines[-max_depth:] if max_depth > 0 else lines
+    scan_text_raw = "\n".join(scan_window)
+    scan_text_lower = scan_text_raw.lower()
+
+    lorebook_ids = [lb['id'] for lb in lorebooks]
+    placeholders = ','.join('?' * len(lorebook_ids))
+    entries = db.execute(
+        f'''SELECT * FROM lorebook_entries
+            WHERE lorebook_id IN ({placeholders}) AND enabled = 1
+            ORDER BY priority DESC, id''',
+        lorebook_ids
+    ).fetchall()
+
+    triggered = [e for e in entries if _entry_triggers(e, scan_text_lower, scan_text_raw)]
+
+    before_parts, after_parts = [], []
+    used_tokens = 0
+    for entry in triggered:
+        content = entry['content']
+        if not content:
+            continue
+        cost = entry['token_budget'] if entry['token_budget'] is not None else token_budget_fn(content)
+        if total_token_budget and used_tokens + cost > total_token_budget:
+            continue
+        used_tokens += cost
+        if entry['position'] == 'after_char':
+            after_parts.append(content)
+        else:
+            # before_char И at_depth (пока не реализован отдельно) едут сюда
+            before_parts.append(content)
+
+    return "\n".join(before_parts), "\n".join(after_parts)
 
 
 def replace_placeholders(text, char_name, user_name):
@@ -62,7 +182,15 @@ def _fill_content_template(template, value):
 def build_system_prompt(character_prompt):
     return f"{cfg('prompts', 'DEFAULT_SYSTEM_RULES')}\n\nDESCRIPTION:\n{character_prompt}"
 
-def build_prompt(system_block, lines, char_name, ooc_command=None, post_history_instructions=None, character_notes=None):
+def build_prompt(system_block, lines, char_name, ooc_command=None, post_history_instructions=None,
+                  character_notes=None, lorebook_before_char='', lorebook_after_char=''):
+    if lorebook_before_char:
+        # before_char едет в самый system_block, перед остальным DESCRIPTION —
+        # это "фоновый лор мира", он должен читаться раньше информации о
+        # персонаже, не после неё (см. обсуждение позиционирования).
+        safe_before = lorebook_before_char.replace("{", "{{").replace("}", "}}")
+        system_block = f"{safe_before}\n\n{system_block}"
+
     history_block = "\n".join(lines).replace("{", "{{").replace("}", "}}")
     instruction_block = history_block
     if character_notes:
@@ -73,6 +201,11 @@ def build_prompt(system_block, lines, char_name, ooc_command=None, post_history_
         safe_notes = character_notes.replace("{", "{{").replace("}", "}}")
         notes_template = cfg('prompts', 'NOTES_TEMPLATE')
         instruction_block += "\n" + _fill_content_template(notes_template, safe_notes) + "\n"
+    if lorebook_after_char:
+        # after_char — "важно прямо сейчас", инъектится ближе к генерации,
+        # той же логикой recency что notes/ooc выше.
+        safe_after = lorebook_after_char.replace("{", "{{").replace("}", "}}")
+        instruction_block += f"\n{safe_after}\n"
     if post_history_instructions:
         # Escaped the same way as the OOC note below — it's user/creator
         # text riding through a .format() call downstream via prompt_template,
@@ -107,6 +240,10 @@ def chat():
     ooc_command = data.get('oocCommand')
     character_notes = data.get('characterNotes', '').strip()
     post_history_instructions = data.get('postHistoryInstructions', '').strip()
+    # character_id опционален для обратной совместимости — если фронт его
+    # не шлёт (или это ещё старый клиент), лорбук просто не сканируется,
+    # остальной прompt собирается как раньше.
+    character_id = data.get('characterId')
 
     if not conversation_history:
         return jsonify({'error': 'Empty history'}), 400
@@ -120,14 +257,31 @@ def chat():
 
     llm_cfg = get_active_llm_cfg()
     lines = conversation_history.strip().split("\n")
-    full_prompt = build_prompt(system_block, lines, char_name, ooc_command, post_history_instructions, character_notes)
+
+    lorebook_before, lorebook_after = ('', '')
+    if character_id:
+        # Скан один раз, не на каждой итерации truncation ниже: скан-окно
+        # берётся с КОНЦА lines (последние N сообщений), а truncation режет
+        # с НАЧАЛА (lines.pop(0)) — то есть хвост, где матчатся ключи, в
+        # подавляющем большинстве случаев не меняется от урезания истории.
+        # Не идеально точно на грани (очень короткая история), но избавляет
+        # от лишних SQL-запросов на каждый pop() — разумный компромисс.
+        lorebook_before, lorebook_after = scan_lorebooks(character_id, lines, count_tokens_text)
+        if lorebook_before:
+            lorebook_before = replace_placeholders(lorebook_before, char_name, user_name)
+        if lorebook_after:
+            lorebook_after = replace_placeholders(lorebook_after, char_name, user_name)
+
+    full_prompt = build_prompt(system_block, lines, char_name, ooc_command, post_history_instructions,
+                                character_notes, lorebook_before, lorebook_after)
     token_count = count_tokens_text(full_prompt)
     max_prompt = llm_cfg.get('context_size', 4096) - llm_cfg.get('max_answer_tokens', 300)
 
     if token_count > max_prompt:
         while token_count > max_prompt and len(lines) > 2:
             lines.pop(0)
-            full_prompt = build_prompt(system_block, lines, char_name, ooc_command, post_history_instructions, character_notes)
+            full_prompt = build_prompt(system_block, lines, char_name, ooc_command, post_history_instructions,
+                                        character_notes, lorebook_before, lorebook_after)
             token_count = count_tokens_text(full_prompt)
 
     def generate():

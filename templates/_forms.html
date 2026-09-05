@@ -187,18 +187,10 @@
             </div>
           </div>
 
-          <!-- Character book -->
-          <div class="field-accordion" id="acc-char-book">
-            <div class="field-accordion-header" onclick="this.parentElement.classList.toggle('open')">
-              <span class="field-accordion-title" id="charBookLabel">Character book (0 entries)</span>
-            </div>
-            <div class="field-accordion-body">
-              <div class="field-accordion-body-inner">
-              <div id="charBookEntries"></div>
-              <button class="field-add-btn" onclick="_addCharBookEntry(document.getElementById('charBookEntries')); _updateCharBookHeader()"><svg width="11" height="11" viewBox="0 0 14 14"><use href="#icon-plus"/></svg> Add entry</button>
-              </div>
-            </div>
-          </div>
+          <!-- Character book accordion removed — лорбуки больше не часть
+               карточки персонажа, переехали в отдельную сущность/вкладку
+               (routes/lorebooks.py). Подключение лорбуков к персонажу
+               теперь делается со стороны вкладки Лорбуков, не отсюда. -->
 
           <!-- Tags -->
           <div class="field-accordion" id="acc-tags">
@@ -223,6 +215,49 @@
               <input type="text" class="field-input" id="characterCreator" placeholder="Author name…">
               <label class="field-label-sm">Version</label>
               <input type="text" class="field-input" id="characterVersion" placeholder="1.0">
+              </div>
+            </div>
+          </div>
+
+          <!-- Connected personas — same idea as the persona-side chip list,
+               but character side also needs a way to ADD a connection (pick
+               from all personas), not just view/remove existing ones.
+               Rendered/wired by characters.js: renderCharacterConnectedPersonas() /
+               connectPersonaToCurrentCharacter() (грубая версия — plain
+               <select> + button, no search/autocomplete yet). -->
+          <div class="field-accordion" id="acc-connected-personas">
+            <div class="field-accordion-header" onclick="this.parentElement.classList.toggle('open')">
+              <span class="field-accordion-title">Connected personas</span>
+            </div>
+            <div class="field-accordion-body">
+              <div class="field-accordion-body-inner">
+                <div id="characterConnectedPersonas" class="connected-chips-list"></div>
+                <div class="connect-persona-row">
+                  <select id="connectPersonaSelect" class="field-input"></select>
+                  <button class="field-add-btn" onclick="connectPersonaToCurrentCharacter()">
+                    <svg width="11" height="11" viewBox="0 0 14 14"><use href="#icon-plus"/></svg> Connect
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Connected lorebooks — symmetric to connected personas above.
+               Rendered/wired by lorebooks.js: renderCharacterConnectedLorebooks() /
+               connectLorebookToCurrentCharacter(). -->
+          <div class="field-accordion" id="acc-connected-lorebooks">
+            <div class="field-accordion-header" onclick="this.parentElement.classList.toggle('open')">
+              <span class="field-accordion-title">Connected lorebooks</span>
+            </div>
+            <div class="field-accordion-body">
+              <div class="field-accordion-body-inner">
+                <div id="characterConnectedLorebooks" class="connected-chips-list"></div>
+                <div class="connect-persona-row">
+                  <select id="connectLorebookSelect" class="field-input"></select>
+                  <button class="field-add-btn" onclick="connectLorebookToCurrentCharacter()">
+                    <svg width="11" height="11" viewBox="0 0 14 14"><use href="#icon-plus"/></svg> Connect
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -257,6 +292,38 @@
           </button>
         </div>
         <div class="character-grid" id="characterGrid"></div>
+      </div>
+    </div>
+
+    <!-- ─────────── CHAT LIST (персонаж -> его чаты) ─────────────
+         Промежуточный экран между списком персонажей и самим чатом.
+         Клик по персонажу теперь ведёт сюда, не сразу в чат — юзер
+         выбирает существующий чат или создаёт новый (с выбором
+         персоны из подключённых). Рендерится/управляется chats.js. -->
+    <div id="chatListView" class="view">
+      <div class="view-container">
+        <div class="view-header">
+          <div class="view-title" id="chatListTitle">Chats</div>
+          <button class="view-back-btn desktop-only" onclick="switchView('load')"><svg width="14" height="14" viewBox="0 0 14 14"><use href="#icon-back"/></svg></button>
+        </div>
+        <div class="view-body">
+          <button class="save-btn" onclick="openNewChatPicker()">
+            <svg width="11" height="11" viewBox="0 0 14 14"><use href="#icon-plus"/></svg> New chat
+          </button>
+          <div class="chat-list" id="chatListContainer"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- New chat: pick a connected persona to start with -->
+    <div class="confirm-modal" id="newChatPersonaModal">
+      <div class="confirm-content">
+        <div class="confirm-title">Start a new chat</div>
+        <div class="confirm-text">Pick a persona to talk as:</div>
+        <div id="newChatPersonaList" class="persona-pick-list"></div>
+        <div class="confirm-buttons">
+          <button class="confirm-btn confirm-no" onclick="closeNewChatPicker()">Cancel</button>
+        </div>
       </div>
     </div>
 
@@ -307,6 +374,24 @@
               <div class="form-group">
                 <label class="form-label">Description</label>
                 <textarea class="form-textarea" id="personaDescription" placeholder="Role, speech style, background…"></textarea>
+              </div>
+
+              <!-- Connected characters — filled by personas.js:
+                   renderPersonaConnectedCharacters(). Empty on a new
+                   (not-yet-saved) persona; populated when editing an
+                   existing one. Connecting a NEW character to this persona
+                   happens from the character's own form (грубая версия:
+                   this side only shows what's already connected + lets you
+                   disconnect). -->
+              <div class="field-accordion" id="acc-connected-characters">
+                <div class="field-accordion-header" onclick="this.parentElement.classList.toggle('open')">
+                  <span class="field-accordion-title">Connected characters</span>
+                </div>
+                <div class="field-accordion-body">
+                  <div class="field-accordion-body-inner">
+                    <div id="personaConnectedCharacters" class="connected-chips-list"></div>
+                  </div>
+                </div>
               </div>
 
               <button class="save-btn" onclick="savePersona()">Save persona</button>

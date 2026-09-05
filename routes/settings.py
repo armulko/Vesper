@@ -25,6 +25,7 @@ _SETTINGS_FIELD_TYPES = {
     ("prompts", "SUMMARIZE_PROMPT"): "textarea",
     ("prompts", "META_SUMMARIZE_PROMPT"): "textarea",
     ("prompts", "SUGGEST_SYSTEM_PROMPT"): "textarea",
+    ("prompts", "LOREBOOK_TOKEN_BUDGET"): "number",
 }
 
 

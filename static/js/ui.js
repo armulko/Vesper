@@ -249,10 +249,11 @@ function switchView(view) {
         'chat':          { id: 'chatView',           tab: 0 },
         'create':        { id: 'createView',         tab: 1 },
         'load':          { id: 'loadView',           tab: 2 },
+        'chatList':      { id: 'chatListView',        tab: -1 },
         'createPersona': { id: 'createPersonaView',  tab: 3 },
         'loadPersona':   { id: 'loadPersonaView',    tab: 4 },
         'modelSwitch':   { id: 'modelSwitchView',    tab: 5 },
-        'imageGen':      { id: 'imageGenView',       tab: 6 },
+        'lorebooks':     { id: 'lorebooksView',      tab: 6 },
         'textReplace':   { id: 'textReplaceView',    tab: 7 },
     };
 
@@ -315,6 +316,9 @@ function switchView(view) {
     } else if (view === 'loadPersona') {
         loadPersonaList();
         editingPersonaId = null;
+    } else if (view === 'lorebooks') {
+        if (typeof loadLorebookList === 'function') loadLorebookList();
+        editingLorebookId = null;
     } else if (view === 'modelSwitch') {
         updateModelUI();
     } else if (view === 'create' && !editingCharacterId) {

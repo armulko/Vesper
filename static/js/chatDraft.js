@@ -1,6 +1,7 @@
 // chatDraft.js
 // ─── Draft persistence (Telegram-style) ────────────────────────
-// Stored server-side in the character record itself (vesper.draft),
+// Stored server-side in the character record itself (character.draft —
+// flat field now, was vesper.draft under the old nested JSON shape),
 // so it survives a page reload, a server restart, and follows the
 // character rather than living only in this tab's memory.
 
@@ -14,7 +15,7 @@ let _draftOwnerId = null;
 
 function _scheduleDraftSave() {
     _draftDirty = true;
-    _draftOwnerId = currentCharacter?.vesper?.id ?? null;
+    _draftOwnerId = currentCharacter?.id ?? null;
     clearTimeout(_draftSaveTimer);
     _draftSaveTimer = setTimeout(_flushDraft, 500);
 }
@@ -27,11 +28,11 @@ async function _flushDraft() {
     const ownerId = _draftOwnerId;
     _draftDirty = false;
     _draftOwnerId = null;
-    // Only touch currentCharacter.vesper.draft in-memory if it's still the
+    // Only touch currentCharacter.draft in-memory if it's still the
     // same character — otherwise this would write into whichever character
     // the user has since switched to.
-    if (currentCharacter?.vesper?.id === ownerId) {
-        currentCharacter.vesper.draft = text;
+    if (currentCharacter?.id === ownerId) {
+        currentCharacter.draft = text;
     }
     try {
         await fetch(`${BASE_URL}/save_draft/${ownerId}`, {
@@ -46,9 +47,9 @@ function _clearDraft() {
     _draftDirty = false;
     _draftOwnerId = null;
     clearTimeout(_draftSaveTimer);
-    if (currentCharacter?.vesper) currentCharacter.vesper.draft = '';
-    if (currentCharacter?.vesper?.id != null) {
-        fetch(`${BASE_URL}/save_draft/${currentCharacter.vesper.id}`, {
+    if (currentCharacter) currentCharacter.draft = '';
+    if (currentCharacter?.id != null) {
+        fetch(`${BASE_URL}/save_draft/${currentCharacter.id}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ draft: '' })
@@ -59,7 +60,7 @@ function _clearDraft() {
 function loadDraftIntoInput() {
     const userInput = document.getElementById('userInput');
     if (!userInput) return;
-    const draft = currentCharacter?.vesper?.draft || '';
+    const draft = currentCharacter?.draft || '';
     userInput.value = draft;
     userInput.style.height = 'auto';
     if (draft) {

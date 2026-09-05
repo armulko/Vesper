@@ -53,19 +53,15 @@ def pick_random_default_avatar():
     return random.choice(files)
 
 
-def ensure_default_avatar(vesper_obj):
-    """Mutates a `vesper` dict in place: assigns a random default_avatar
-    if one isn't already set. Idempotent — once set, never touched again,
-    regardless of has_avatar or anything else. Safe to call on every
-    save/update, for both new and existing records (covers old records
-    saved before this field existed)."""
-    if not isinstance(vesper_obj, dict):
-        return vesper_obj
-    if not vesper_obj.get('default_avatar'):
-        chosen = pick_random_default_avatar()
-        if chosen:
-            vesper_obj['default_avatar'] = chosen
-    return vesper_obj
+# ensure_default_avatar() removed — it existed to mutate a nested `vesper`
+# dict in place before writing it back to characters.json. Now that
+# characters/personas live as flat DB rows, there's no dict to mutate:
+# callers (routes/characters.py, routes/personas.py) call
+# pick_random_default_avatar() directly and put the result straight into
+# the INSERT. Same "assigned once, never reassigned on UPDATE" contract —
+# it's just enforced by the callers only ever setting default_avatar on
+# INSERT and never touching it in an UPDATE statement, instead of by an
+# idempotency check inside this function.
 
 
 def get_default_avatar_path(filename):

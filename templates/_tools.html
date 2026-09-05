@@ -41,45 +41,59 @@
       </div>
     </div>
 
-    <!-- ─────────── IMAGE GEN ─────────── -->
-    <div id="imageGenView" class="view">
+    <!-- ─────────── LOREBOOKS ─────────── -->
+    <div id="lorebooksView" class="view">
       <div class="view-container">
         <div class="view-header">
-          <div class="view-title">Image generator</div>
+          <div class="view-title">Lorebooks</div>
+          <button class="view-header-action" onclick="resetLorebookEditor(); openLorebookEditor()"><svg width="11" height="11" viewBox="0 0 14 14"><use href="#icon-plus"/></svg> New</button>
         </div>
         <div class="view-body">
+          <div class="character-grid" id="lorebookGrid"></div>
+        </div>
+      </div>
+    </div>
 
-          <div class="form-group">
-            <label class="form-label">Result</label>
-            <div class="image-preview image-gen-preview" id="imageGenPreview">
-              <div class="image-preview-placeholder">Empty</div>
+    <!-- Lorebook editor modal — name, shared flag, scan depth, entries list.
+         A modal rather than a full view: entries editing is the same
+         "accordion list with add/remove" pattern as alternate greetings in
+         the character form, doesn't need its own dedicated screen. -->
+    <div class="confirm-modal" id="lorebookEditorModal">
+      <div class="confirm-content lorebook-editor-content">
+        <div class="confirm-title" id="lorebookEditorTitle">New lorebook</div>
+
+        <div class="form-group">
+          <label class="form-label">Name</label>
+          <input type="text" class="form-input" id="lorebookName" placeholder="World lore, character secrets…">
+        </div>
+
+        <div class="form-group lorebook-editor-row">
+          <label class="field-checkbox-label">
+            <input type="checkbox" id="lorebookShared">
+            <span>Shared (connectable to any character, not just its origin)</span>
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Scan depth <span class="field-tag-muted">recent messages checked for keys</span></label>
+          <input type="number" class="form-input" id="lorebookScanDepth" min="1" max="50" value="4">
+        </div>
+
+        <div class="field-accordion open" id="acc-lorebook-entries">
+          <div class="field-accordion-header" onclick="this.parentElement.classList.toggle('open')">
+            <span class="field-accordion-title" id="lorebookEntriesLabel">Entries (0)</span>
+          </div>
+          <div class="field-accordion-body">
+            <div class="field-accordion-body-inner">
+              <div id="lorebookEntriesList"></div>
+              <button class="field-add-btn" onclick="addLorebookEntryItem()"><svg width="11" height="11" viewBox="0 0 14 14"><use href="#icon-plus"/></svg> Add entry</button>
             </div>
-            <div class="avatar-progress-container hidden" id="imageGenProgressContainer">
-              <div class="avatar-progress-bar">
-                <div class="avatar-progress-fill" id="imageGenProgressFill"></div>
-              </div>
-              <div class="avatar-progress-text" id="imageGenProgressText">0 / 20</div>
-            </div>
           </div>
+        </div>
 
-          <div class="form-group">
-            <label class="form-label">Prompt</label>
-            <textarea class="form-textarea" id="imageGenPrompt" placeholder="Describe the image…"></textarea>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">
-              Steps: <span id="imageGenStepsValue">20</span>
-            </label>
-            <input type="range" id="imageGenSteps" min="1" max="60" value="20"
-              oninput="document.getElementById('imageGenStepsValue').textContent = this.value">
-            <div class="steps-range-labels"><span>1</span><span>60</span></div>
-          </div>
-
-          <button class="save-btn" id="imageGenBtn" onclick="generateImage()">Generate</button>
-          <button class="save-btn save-btn-success" id="imageGenSaveBtn"
-            onclick="saveGeneratedImage()" style="display:none">Save image</button>
-
+        <div class="confirm-buttons">
+          <button class="confirm-btn confirm-no" onclick="closeLorebookEditor()">Cancel</button>
+          <button class="confirm-btn confirm-yes" onclick="saveLorebook()">Save</button>
         </div>
       </div>
     </div>

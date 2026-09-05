@@ -1,4 +1,22 @@
 // static/js/characters.js
+//
+// STAGE 1 REWRITE: список персонажей + CRUD-форма под новый плоский API
+// (characters.py теперь отдаёт плоский JSON, без vesper/data-обёртки —
+// см. обсуждение "фронт тоже переписываем, можно менять формат ответа").
+//
+// Что убрано в этой версии, сознательно:
+// - character_book редактор (_collectCharacterBook/_renderCharacterBook/
+//   _addCharBookEntry/_updateCharBookHeader) — лорбуки теперь отдельная
+//   сущность/вкладка (routes/lorebooks.py), не встроены в карточку
+//   персонажа. Если что-то из старого UI-кода понадобится переиспользовать
+//   для новой вкладки лорбуков — воспринимай эту версию как источник, но
+//   она сюда сознательно не перенесена.
+// - image_gen: не трогал, отдельная вкладка, не относится к CRUD персонажей.
+//
+// Что ВРЕМЕННО не сделано (это STAGE 2, следующий заход):
+// - loadCharacter() пока остаётся заглушкой — список чатов персонажа,
+//   форки, выбор персоны для чата ещё не встроены в основной flow.
+//   Подробности в комментарии над функцией внизу файла.
 
 let _charactersCache = [];
 
@@ -28,22 +46,21 @@ async function fetchCharacters() {
     return r.json();
 }
 
-async function fetchCharacterHistory(id) {
-    const r = await fetch(`${BASE_URL}/get_chat_history/${id}`);
-    return r.json();
-}
-
+// avatarUrl/characterAvatarImg теперь работают с плоскими полями (char.id,
+// char.default_avatar, char.has_avatar) напрямую — раньше всё это жило
+// внутри char.vesper. bust-параметр всё ещё через _avatarBust, но теперь
+// пишется прямо в char (не char.vesper), см. saveCharacter ниже.
 function avatarUrl(id) {
-    const char = _charactersCache.find(c => c.vesper?.id === id) || currentCharacter;
-    const bust = char?.vesper?._avatarBust ? `?t=${char.vesper._avatarBust}` : '';
+    const char = _charactersCache.find(c => c.id === id) || currentCharacter;
+    const bust = char?._avatarBust ? `?t=${char._avatarBust}` : '';
     return `${BASE_URL}/character_avatar/${id}${bust}`;
 }
 
 function characterAvatarImg(char) {
-    const src = char.vesper?.has_avatar
-        ? avatarUrl(char.vesper.id)
-        : defaultAvatarUrl(char.vesper?.default_avatar);
-    return `<img src="${src}" alt="${char.data.name}">`;
+    const src = char.has_avatar
+        ? avatarUrl(char.id)
+        : defaultAvatarUrl(char.default_avatar);
+    return `<img src="${src}" alt="${char.name}">`;
 }
 
 function loadCharacterList() {
@@ -58,126 +75,13 @@ function loadCharacterList() {
 
 function _pinSelectedCharacter(characters) {
     if (!currentCharacter) return characters;
-    const selId = currentCharacter.vesper?.id;
-    const idx = characters.findIndex(c => c.vesper?.id === selId);
+    const selId = currentCharacter.id;
+    const idx = characters.findIndex(c => c.id === selId);
     if (idx <= 0) return characters;
     const copy = characters.slice();
     const [selected] = copy.splice(idx, 1);
     copy.unshift(selected);
     return copy;
-}
-
-function _buildGreetingMessage(character, persona) {
-    const rawVersions = [
-        character.data.first_mes,
-        ...(character.data.alternate_greetings || [])
-    ].filter(t => t && t.trim());
-
-    if (rawVersions.length === 0) return null;
-
-    const personaName = persona ? persona.name : 'User';
-    const fillPlaceholders = (t) => t
-        .replace(/\{\{char\}\}/g, character.data.name)
-        .replace(/\{\{user\}\}/g, personaName)
-        .replace(/{char}/g, character.data.name)
-        .replace(/{user}/g, personaName);
-
-    const versions = rawVersions.map(fillPlaceholders);
-
-    return {
-        text: versions[0],
-        isUser: false,
-        versions,
-        rawVersions,
-        activeVersion: 0
-    };
-}
-
-function loadCharacter(id, restoreView = 'chat') {
-    const emptyState = document.getElementById('chatEmptyState');
-    if (emptyState) emptyState.innerHTML = '';
-    if (typeof _flushDraft === 'function') _flushDraft();
-    Promise.all([fetchCharacters(), fetchCharacterHistory(id)]).then(([characters, history]) => {
-        const character = characters.find(c => c.vesper?.id === id);
-        if (!character) return;
-
-        currentCharacter = character;
-        chatHistory = history || [];
-        if (typeof loadDraftIntoInput === 'function') loadDraftIntoInput();
-
-        const chatCharAvatar = document.getElementById('chatCharAvatar');
-        const chatCharName = document.getElementById('chatCharName');
-        if (chatCharName) chatCharName.textContent = character.data.name;
-        if (userInput) userInput.placeholder = `Write to ${character.data.name}…`;
-        if (chatCharAvatar) {
-            const src = character.has_avatar
-                ? avatarUrl(character.vesper.id)
-                : defaultAvatarUrl(character.vesper?.default_avatar);
-            chatCharAvatar.innerHTML = `<img src="${src}" alt="${character.data.name}">`;
-            chatCharAvatar.onclick = () => openAvatarModal(src);
-        }
-
-        const clearBtn = document.getElementById('clearHistoryBtn');
-        if (clearBtn){ 
-            clearBtn.classList.remove('hidden');
-            clearBtn.classList.add('flex');
-        }
-
-        const chatMessages = document.getElementById('chatMessagesInner');
-        chatMessages.innerHTML = '';
-
-        if (chatHistory.length > 0) {
-            const firstMsg = chatHistory[0];
-            if (firstMsg && !firstMsg.isUser) {
-                const personaName = currentPersona ? currentPersona.name : 'User';
-                const fillPlaceholders = (t) => t
-                    .replace(/\{\{char\}\}/g, character.data.name)
-                    .replace(/\{\{user\}\}/g, personaName)
-                    .replace(/{char}/g, character.data.name)
-                    .replace(/{user}/g, personaName);
-
-                if (firstMsg.versions?.length) {
-                    firstMsg.versions = firstMsg.rawVersions.map(fillPlaceholders);
-                    firstMsg.text = firstMsg.versions[firstMsg.activeVersion] ?? firstMsg.versions[0];
-                } else if (chatHistory.length === 1 && (character.data.alternate_greetings || []).length > 0) {
-                    const rawVersions = [
-                        character.data.first_mes,
-                        ...(character.data.alternate_greetings || [])
-                    ].filter(t => t && t.trim());
-                    const versions = rawVersions.map(fillPlaceholders);
-                    const matchedIndex = versions.indexOf(firstMsg.text);
-                    firstMsg.versions = versions;
-                    firstMsg.rawVersions = rawVersions;
-                    firstMsg.activeVersion = matchedIndex >= 0 ? matchedIndex : 0;
-                    firstMsg.text = versions[firstMsg.activeVersion];
-                } else if (character.data.first_mes) {
-                    firstMsg.text = fillPlaceholders(character.data.first_mes);
-                }
-                saveChatHistory();
-            }
-            chatHistory.forEach((msg, index) => {
-                addMessage(msg.text, msg.isUser, index);
-            });
-        } else {
-            const greetingMsg = _buildGreetingMessage(character, currentPersona);
-            if (greetingMsg) {
-                addMessage(greetingMsg.text, false, 0);
-                chatHistory.push(greetingMsg);
-                saveChatHistory();
-            }
-        }
-
-        loadCharacterList();
-        updateSummaryBrowserBtn();
-        loadCharacterNotes(id);
-        switchView(restoreView);
-        updateTokenCount();
-        saveAppState();
-
-    }).catch(error => {
-        console.error('Error loading character:', error);
-        showCustomAlert('Load error: ' + error);
-    });
 }
 
 function _openEditorAvatarModal(containerId) {
@@ -202,6 +106,10 @@ function handleDirectAvatarUpload(event) {
     reader.readAsDataURL(file);
 }
 
+// saveCharacter — плоский payload, без vesper/spec/data-обёртки. id больше
+// не генерится на фронте (Date.now()) — сервер сам выдаёт autoincrement id
+// на создании; редактирование бьёт по editingCharacterId как раньше.
+// character_book убран из payload — лорбуки сохраняются отдельно.
 function saveCharacter() {
     const name = document.getElementById('characterName').value.trim();
     const description = document.getElementById('characterDescription').value.trim();
@@ -217,35 +125,26 @@ function saveCharacter() {
         return;
     }
 
-    const charId = editingCharacterId || Date.now();
     const character = {
-        vesper: {
-            id: charId,
-            has_avatar: !!(editingCharacterId ? (currentCharacter?.vesper?.has_avatar || characterImage) : characterImage),
-            ...(editingCharacterId ? {} : (_pendingDefaultAvatar ? { default_avatar: _pendingDefaultAvatar } : {}))
-        },
-        spec: 'chara_card_v2',
-        spec_version: '2.0',
-        data: {
-            name,
-            description,
-            personality:              document.getElementById('characterPersonality')?.value.trim() || '',
-            scenario:                 document.getElementById('characterScenario')?.value.trim() || '',
-            first_mes,
-            mes_example:              document.getElementById('characterMesExample')?.value.trim() || '',
-            creator_notes:            document.getElementById('characterCreatorNotes')?.value.trim() || '',
-            system_prompt:            document.getElementById('characterSystemPrompt')?.value.trim() || '',
-            post_history_instructions: document.getElementById('characterPostHistory')?.value.trim() || '',
-            alternate_greetings:      _collectAlternateGreetings(),
-            character_book:           _collectCharacterBook(),
-            tags:                     (document.getElementById('characterTags')?.value || '').split(',').map(t => t.trim()).filter(Boolean),
-            creator:                  document.getElementById('characterCreator')?.value.trim() || '',
-            character_version:        document.getElementById('characterVersion')?.value.trim() || '',
-            extensions:               extensionsResult.value
-        },
-        image: characterImage,
-        id: charId,
+        name,
+        description,
+        personality:               document.getElementById('characterPersonality')?.value.trim() || '',
+        scenario:                  document.getElementById('characterScenario')?.value.trim() || '',
+        first_mes,
+        mes_example:               document.getElementById('characterMesExample')?.value.trim() || '',
+        creator_notes:             document.getElementById('characterCreatorNotes')?.value.trim() || '',
+        system_prompt:             document.getElementById('characterSystemPrompt')?.value.trim() || '',
+        post_history_instructions: document.getElementById('characterPostHistory')?.value.trim() || '',
+        alternate_greetings:       _collectAlternateGreetings(),
+        tags:                      (document.getElementById('characterTags')?.value || '').split(',').map(t => t.trim()).filter(Boolean),
+        creator:                   document.getElementById('characterCreator')?.value.trim() || '',
+        character_version:         document.getElementById('characterVersion')?.value.trim() || '',
+        extensions:                extensionsResult.value,
     };
+
+    if (characterImage && characterImage.startsWith('data:')) {
+        character.image = characterImage;
+    }
 
     const url = editingCharacterId
         ? `${BASE_URL}/update_character/${editingCharacterId}`
@@ -258,14 +157,18 @@ function saveCharacter() {
         body: JSON.stringify(character)
     }).then(r => r.json()).then(data => {
         if (data.success) {
+            // Новый id приходит с бэка на создании (data.id) — на update
+            // используем editingCharacterId как раньше, id не меняется.
+            const savedId = editingCharacterId || data.id;
+
             if (editingCharacterId && currentCharacter?.id === editingCharacterId) {
                 currentCharacter = { ...currentCharacter };
-                currentCharacter.data.name = name;
-                currentCharacter.data.description = description;
-                currentCharacter.data.first_mes = first_mes;
+                currentCharacter.name = name;
+                currentCharacter.description = description;
+                currentCharacter.first_mes = first_mes;
                 if (characterImage) {
-                    currentCharacter.vesper.has_avatar = true;
-                    currentCharacter.vesper._avatarBust = Date.now();
+                    currentCharacter.has_avatar = true;
+                    currentCharacter._avatarBust = Date.now();
                 }
                 const chatCharNameEl = document.getElementById('chatCharName');
                 if (chatCharNameEl) chatCharNameEl.textContent = name;
@@ -276,7 +179,6 @@ function saveCharacter() {
             const optFields = ['characterPersonality','characterScenario','characterMesExample','characterCreatorNotes','characterSystemPrompt','characterPostHistory','characterTags','characterCreator','characterVersion','characterExtensions'];
             optFields.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
             _renderAlternateGreetings([]);
-            _renderCharacterBook({ entries: [] });
             _collapseAllAccordions();
             document.getElementById('imagePreview').innerHTML = '<div class="image-preview-placeholder">Choose a photo</div>';
             characterImage = null;
@@ -287,7 +189,7 @@ function saveCharacter() {
 
             const isDesktop = window.matchMedia('(min-width: 768px)').matches;
             if (isDesktop) {
-                loadCharacter(charId, 'chat');
+                loadCharacter(savedId, 'chat');
             } else {
                 switchView('load');
             }
@@ -295,6 +197,12 @@ function saveCharacter() {
     }).catch(error => showCustomAlert('Save error: ' + error));
 }
 
+// import_character_png теперь возвращает данные без character_book (см.
+// routes/characters.py — вынесен в raw_character_book отдельным полем).
+// Если result.raw_character_book.entries непустой, стоило бы предложить
+// юзеру "создать из этого лорбук?" — это задача вкладки лорбуков, здесь
+// пока просто игнорируется молча (данные не теряются на бэке, просто не
+// подхвачены здесь).
 async function _importCharacterFromPng(event) {
     const file = event.target.files[0];
     event.target.value = '';
@@ -335,7 +243,6 @@ async function _importCharacterFromPng(event) {
     document.getElementById('characterCreator').value = data.creator || '';
     document.getElementById('characterVersion').value = data.character_version || '';
     _renderAlternateGreetings(data.alternate_greetings || []);
-    _renderCharacterBook(data.character_book || { entries: [] });
     _renderExtensions(data.extensions || {});
     _autoExpandFilledAccordions(data);
     ['characterPersonality', 'characterScenario', 'characterMesExample',
@@ -368,29 +275,28 @@ async function _importCharacterFromPng(event) {
 function editCharacter(id, event) {
     event.stopPropagation();
     fetchCharacters().then(characters => {
-        const character = characters.find(c => c.vesper?.id === id);
+        const character = characters.find(c => c.id === id);
         if (!character) return;
 
         editingCharacterId = id;
         if (typeof _resetTokenCache === 'function') _resetTokenCache();
-        document.getElementById('characterName').value = character.data.name;
-        document.getElementById('characterDescription').value = character.data.description || '';
-        document.getElementById('characterFirstMes').value = character.data.first_mes || '';
-        document.getElementById('characterPersonality').value = character.data.personality || '';
-        document.getElementById('characterScenario').value = character.data.scenario || '';
-        document.getElementById('characterMesExample').value = character.data.mes_example || '';
-        document.getElementById('characterCreatorNotes').value = character.data.creator_notes || '';
-        document.getElementById('characterSystemPrompt').value = character.data.system_prompt || '';
-        document.getElementById('characterPostHistory').value = character.data.post_history_instructions || '';
-        document.getElementById('characterTags').value = (character.data.tags || []).join(', ');
-        document.getElementById('characterCreator').value = character.data.creator || '';
-        document.getElementById('characterVersion').value = character.data.character_version || '';
-        _renderAlternateGreetings(character.data.alternate_greetings || []);
-        _renderCharacterBook(character.data.character_book || { entries: [] });
-        _renderExtensions(character.data.extensions || {});
-        _autoExpandFilledAccordions(character.data);
+        document.getElementById('characterName').value = character.name;
+        document.getElementById('characterDescription').value = character.description || '';
+        document.getElementById('characterFirstMes').value = character.first_mes || '';
+        document.getElementById('characterPersonality').value = character.personality || '';
+        document.getElementById('characterScenario').value = character.scenario || '';
+        document.getElementById('characterMesExample').value = character.mes_example || '';
+        document.getElementById('characterCreatorNotes').value = character.creator_notes || '';
+        document.getElementById('characterSystemPrompt').value = character.system_prompt || '';
+        document.getElementById('characterPostHistory').value = character.post_history_instructions || '';
+        document.getElementById('characterTags').value = (character.tags || []).join(', ');
+        document.getElementById('characterCreator').value = character.creator || '';
+        document.getElementById('characterVersion').value = character.character_version || '';
+        _renderAlternateGreetings(character.alternate_greetings || []);
+        _renderExtensions(character.extensions || {});
+        _autoExpandFilledAccordions(character);
         if (typeof _updateTotalTokens === 'function') _updateTotalTokens();
-        
+
         Object.entries({
             characterDescription: 'desc-tok', characterFirstMes: 'firstmes-tok',
             characterPersonality: 'personality-tok', characterScenario: 'scenario-tok',
@@ -401,17 +307,19 @@ function editCharacter(id, event) {
             if (el && el.value && typeof _onFieldInput === 'function') _onFieldInput(el, tokTarget);
         });
 
-        if (character.vesper?.has_avatar) {
-            characterImage = null; 
+        if (character.has_avatar) {
+            characterImage = null;
             document.getElementById('imagePreview').innerHTML = `<img src="${avatarUrl(id)}?t=${Date.now()}" alt="Character">`;
         } else {
             characterImage = null;
-            document.getElementById('imagePreview').innerHTML = character.vesper?.default_avatar
-                ? `<img src="${defaultAvatarUrl(character.vesper.default_avatar)}" alt="Character">`
+            document.getElementById('imagePreview').innerHTML = character.default_avatar
+                ? `<img src="${defaultAvatarUrl(character.default_avatar)}" alt="Character">`
                 : '<div class="image-preview-placeholder">Choose a photo</div>';
         }
 
         document.querySelector('.save-btn').textContent = 'Save changes';
+        renderCharacterConnectedPersonas(id);
+        if (typeof renderCharacterConnectedLorebooks === 'function') renderCharacterConnectedLorebooks(id);
         switchView('create');
 
         ['characterDescription', 'characterFirstMes',
@@ -421,6 +329,8 @@ function editCharacter(id, event) {
     }).catch(error => console.error('Error loading character:', error));
 }
 
+// acc-char-book убран из карты — вкладка лорбуков теперь отдельная,
+// у карточки персонажа больше нет собственного character_book-аккордеона.
 const ACCORDION_FIELD_MAP = {
     'acc-personality':    d => d.personality,
     'acc-scenario':       d => d.scenario,
@@ -429,7 +339,6 @@ const ACCORDION_FIELD_MAP = {
     'acc-post-history':   d => d.post_history_instructions,
     'acc-creator-notes':  d => d.creator_notes,
     'acc-alt-greetings':  d => (d.alternate_greetings || []).length > 0,
-    'acc-char-book':      d => (d.character_book?.entries || []).length > 0,
     'acc-tags':           d => (d.tags || []).length > 0,
     'acc-meta':           d => d.creator || d.character_version,
 };
@@ -462,7 +371,6 @@ function _resetCharacterForm() {
      'characterMesExample','characterCreatorNotes','characterSystemPrompt','characterPostHistory']
         .forEach(id => { const el = document.getElementById(id); if (el) el.style.height = ''; });
     _renderAlternateGreetings([]);
-    _renderCharacterBook({ entries: [] });
     _collapseAllAccordions();
     const preview = document.getElementById('imagePreview');
     if (preview) preview.innerHTML = '<div class="image-preview-placeholder">Choose a photo</div>';
@@ -471,6 +379,8 @@ function _resetCharacterForm() {
     if (saveBtn) saveBtn.textContent = 'Save character';
     _updateTotalTokens();
     _validateSaveBtn();
+    renderCharacterConnectedPersonas(null);
+    if (typeof renderCharacterConnectedLorebooks === 'function') renderCharacterConnectedLorebooks(null);
 }
 
 function showDeleteConfirm(id, event) {
@@ -486,7 +396,7 @@ function confirmDelete() {
         method: 'DELETE'
     }).then(r => r.json()).then(data => {
         if (data.success) {
-            if (currentCharacter && currentCharacter.vesper.id === deleteCharacterId) {
+            if (currentCharacter && currentCharacter.id === deleteCharacterId) {
                 currentCharacter = null;
                 chatHistory = [];
                 _characterNotes = '';
@@ -509,27 +419,6 @@ function confirmDelete() {
             showCustomAlert('Delete error');
         }
     }).catch(error => showCustomAlert('Error: ' + error));
-}
-
-function clearChatHistory() {
-    if (!currentCharacter) return;
-    showConfirm('Clear the entire chat history?', () => {
-        fetch(`${BASE_URL}/clear_chat_history/${currentCharacter.vesper.id}`, {
-            method: 'POST'
-        }).then(r => r.json()).then(data => {
-            if (data.success) {
-                chatHistory = [];
-                document.getElementById('chatMessagesInner').innerHTML = '';
-                const greetingMsg = _buildGreetingMessage(currentCharacter, currentPersona);
-                if (greetingMsg) {
-                    chatHistory.push(greetingMsg);
-                    saveChatHistory();
-                }
-                reloadChat();
-                showCustomAlert('History cleared');
-            }
-        }).catch(e => showCustomAlert('Clear error: ' + e));
-    });
 }
 
 function _fuzzyScore(str, query) {
@@ -609,21 +498,21 @@ function renderCharacterCards(characters) {
         return;
     }
     const html = characters.map(char => `
-        <div class="character-card compact ${currentCharacter && currentCharacter.vesper?.id === char.vesper?.id ? 'selected-persona' : ''}" data-character-id="${char.vesper.id}">
-            <div class="character-card-clickable" onclick="loadCharacter(${char.vesper.id}); switchView('chat')">
+        <div class="character-card compact ${currentCharacter && currentCharacter.id === char.id ? 'selected-persona' : ''}" data-character-id="${char.id}">
+            <div class="character-card-clickable" onclick="openChatList(${char.id})">
                 <div class="character-card-avatar">
                     ${characterAvatarImg(char)}
                 </div>
-                <div class="character-card-name">${char.data.name}</div>
+                <div class="character-card-name">${char.name}</div>
                 <div class="character-card-desc">
-                    ${(char.data.description || '').slice(0, 60)}
+                    ${(char.description || '').slice(0, 60)}
                 </div>
             </div>
             <div class="character-actions">
-                <button class="action-btn edit-btn" onclick="editCharacter(${char.vesper.id}, event)">
+                <button class="action-btn edit-btn" onclick="editCharacter(${char.id}, event)">
                     <img src="/static/icons/edit.svg" alt="edit">
                 </button>
-                <button class="action-btn delete-btn" onclick="showDeleteConfirm(${char.vesper.id}, event)">
+                <button class="action-btn delete-btn" onclick="showDeleteConfirm(${char.id}, event)">
                     <img src="/static/icons/trash.svg" alt="delete">
                 </button>
             </div>
@@ -633,7 +522,6 @@ function renderCharacterCards(characters) {
     if (typeof _staggerCardReveal === 'function') targets.forEach(_staggerCardReveal);
 }
 
-// Внутренняя функция непосредственного расчета фильтрации
 function _execFilterCharacters(query) {
     const clearBtn = document.getElementById('characterSearchClear');
     if (clearBtn) {
@@ -646,8 +534,8 @@ function _execFilterCharacters(query) {
     }
     const THRESHOLD = 0.35;
     const scored = _charactersCache.map(char => {
-        const nameScore  = _fuzzyScoreLayoutAware(char.data?.name || '', query) * 0.7;
-        const instrScore = _fuzzyScoreLayoutAware(char.data?.description || '', query) * 0.3;
+        const nameScore  = _fuzzyScoreLayoutAware(char.name || '', query) * 0.7;
+        const instrScore = _fuzzyScoreLayoutAware(char.description || '', query) * 0.3;
         return { char, score: nameScore + instrScore };
     })
     .filter(x => x.score >= THRESHOLD)
@@ -656,7 +544,6 @@ function _execFilterCharacters(query) {
     renderCharacterCards(scored.map(x => x.char));
 }
 
-// Debounce для безопасного вызова
 let _charSearchTimeout = null;
 function filterCharacters(query) {
     clearTimeout(_charSearchTimeout);
@@ -677,6 +564,11 @@ function clearCharacterSearch() {
 }
 
 // ── V2 helpers ────────────────────────────────────────────────────
+// _collectCharacterBook/_renderCharacterBook/_addCharBookEntry/
+// _updateCharBookHeader сознательно НЕ перенесены сюда — character_book
+// больше не редактируется как часть карточки персонажа (см. заголовок
+// файла). Разметка формы (#charBookEntries и т.п.) потребует отдельной
+// правки HTML, когда дойдём до вкладки лорбуков.
 
 function _collectAlternateGreetings() {
     const container = document.getElementById('alternateGreetingsList');
@@ -720,22 +612,6 @@ function _updateAltGreetingsHeader() {
     if (label) label.textContent = `Alternate Greetings (${count})`;
 }
 
-function _collectCharacterBook() {
-    const container = document.getElementById('charBookEntries');
-    if (!container) return { entries: [] };
-    const entries = Array.from(container.querySelectorAll('.charbook-entry')).map(el => ({
-        keys: (el.querySelector('.charbook-keys')?.value || '').split(',').map(k => k.trim()).filter(Boolean),
-        content: el.querySelector('.charbook-content')?.value.trim() || '',
-        enabled: el.querySelector('.charbook-enabled')?.checked ?? true,
-        priority: parseInt(el.querySelector('.charbook-priority')?.value || '100', 10)
-    })).filter(e => e.content);
-    return { entries };
-}
-
-// Returns {value, valid} instead of silently discarding bad input on
-// parse failure — the caller (saveCharacter) is responsible for blocking
-// the save and telling the user, rather than this function quietly
-// replacing their typed JSON with {} and hoping they notice the alert.
 function _collectExtensions() {
     const raw = document.getElementById('characterExtensions')?.value.trim();
     if (!raw) return { value: {}, valid: true };
@@ -753,41 +629,6 @@ function _renderExtensions(extensions) {
     if (!el) return;
     const hasContent = extensions && typeof extensions === 'object' && Object.keys(extensions).length > 0;
     el.value = hasContent ? JSON.stringify(extensions, null, 2) : '';
-}
-
-function _renderCharacterBook(book) {
-    const container = document.getElementById('charBookEntries');
-    if (!container) return;
-    container.innerHTML = '';
-    (book.entries || []).forEach((entry, i) => _addCharBookEntry(container, entry, i));
-    _updateCharBookHeader();
-}
-
-function _addCharBookEntry(container, entry = {}, index = null) {
-    const idx = index ?? container.querySelectorAll('.charbook-entry').length;
-    const tokenKey = `charbook-${idx}-${Date.now()}`;
-    const item = document.createElement('div');
-    item.className = 'charbook-entry';
-    item.innerHTML = `
-        <div class="charbook-entry-header">
-            <span>Entry #${idx + 1}</span>
-            <span class="field-token-count" data-target="${tokenKey}">0 tok</span>
-            <button class="field-remove-btn" onclick="this.closest('.charbook-entry').remove(); _updateCharBookHeader(); _updateTotalTokens()">×</button>
-        </div>
-        <input class="charbook-keys field-input" type="text" placeholder="keywords, comma separated" value="${(entry.keys || []).join(', ')}">
-        <textarea class="charbook-content field-textarea" data-token-id="${tokenKey}" rows="3" placeholder="Content...">${entry.content || ''}</textarea>
-        <div class="charbook-entry-meta">
-            <label><input class="charbook-enabled" type="checkbox" ${entry.enabled !== false ? 'checked' : ''}> Enabled</label>
-            <label>Priority <input class="charbook-priority field-input-sm" type="number" value="${entry.priority ?? 100}"></label>
-        </div>`;
-    container.appendChild(item);
-    _bindTokenCounter(item.querySelector('.charbook-content'));
-}
-
-function _updateCharBookHeader() {
-    const count = document.querySelectorAll('.charbook-entry').length;
-    const label = document.getElementById('charBookLabel');
-    if (label) label.textContent = `Character Book (${count} entries)`;
 }
 
 function _autoResizeTextarea(textarea) {
@@ -876,3 +717,317 @@ function _bindStaticCharacterTextareas() {
 }
 
 document.addEventListener('DOMContentLoaded', _bindStaticCharacterTextareas);
+
+// ── Chat resolution (STAGE 2) ────────────────────────────────────
+// Раньше чат = один на персонажа, история читалась напрямую по
+// character_id. Теперь чат — отдельная сущность с жёстко привязанной
+// персоной (см. routes/chats.py). loadCharacter теперь:
+//   1. смотрит уже существующие чаты персонажа (GET /character/<id>/chats)
+//   2. если есть — берёт самый недавний (order: updated_at DESC, см.
+//      бэкенд), это грубая версия "открой куда бросил" — полноценный
+//      список чатов с выбором это отдельный экран, ещё не встроен
+//   3. если чатов нет — нужна персона, чтобы завести дефолтный чат.
+//      Грубая версия: берёт currentPersona, если её нет — первую
+//      подключённую к персонажу (GET /character/<id>/personas), если и
+//      подключённых нет — просит подключить хоть одну персону и
+//      останавливается (не создаёт чат без персоны, это NOT NULL на бэке).
+//
+// Это всё ещё не финальный UX (нет выбора чата/персоны из нескольких) —
+// но теперь реально рабочий путь "открыл персонажа -> увидел историю",
+// а не console.warn-заглушка.
+
+async function _resolveOrCreateChatForCharacter(characterId) {
+    const chatsRes = await fetch(`${BASE_URL}/character/${characterId}/chats`);
+    const chats = await chatsRes.json();
+    if (Array.isArray(chats) && chats.length > 0) {
+        return chats[0]; // уже отсортированы updated_at DESC на бэке
+    }
+
+    let personaId = currentPersona?.id || null;
+    if (!personaId) {
+        const personasRes = await fetch(`${BASE_URL}/character/${characterId}/personas`);
+        const connected = await personasRes.json();
+        if (Array.isArray(connected) && connected.length > 0) {
+            personaId = connected[0].id;
+        }
+    }
+
+    if (!personaId) {
+        throw new Error('NO_PERSONA_CONNECTED');
+    }
+
+    const createRes = await fetch(`${BASE_URL}/create_chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ character_id: characterId, persona_id: personaId, title: 'Main' })
+    });
+    const createData = await createRes.json();
+    if (!createData.success) throw new Error(createData.error || 'failed to create chat');
+
+    return { id: createData.chat_id, character_id: characterId, persona_id: personaId };
+}
+
+async function fetchChatHistory(chatId) {
+    const r = await fetch(`${BASE_URL}/get_chat_history/${chatId}`);
+    return r.json();
+}
+
+function _buildGreetingMessage(character, persona) {
+    const rawVersions = [
+        character.first_mes,
+        ...(character.alternate_greetings || [])
+    ].filter(t => t && t.trim());
+
+    if (rawVersions.length === 0) return null;
+
+    const personaName = persona ? persona.name : 'User';
+    const fillPlaceholders = (t) => t
+        .replace(/\{\{char\}\}/g, character.name)
+        .replace(/\{\{user\}\}/g, personaName)
+        .replace(/{char}/g, character.name)
+        .replace(/{user}/g, personaName);
+
+    const versions = rawVersions.map(fillPlaceholders);
+
+    return {
+        text: versions[0],
+        isUser: false,
+        versions,
+        rawVersions,
+        activeVersion: 0
+    };
+}
+
+let currentChatId = null;
+
+async function loadCharacter(id, restoreView = 'chat', explicitChatId = null) {
+    const emptyState = document.getElementById('chatEmptyState');
+    if (emptyState) emptyState.innerHTML = '';
+    if (typeof _flushDraft === 'function') _flushDraft();
+
+    let character, chat;
+    try {
+        const characters = await fetchCharacters();
+        character = characters.find(c => c.id === id);
+        if (!character) return;
+
+        if (explicitChatId) {
+            // Пришли из списка чатов/создания нового — chat_id уже известен,
+            // но нужен ещё persona_id этого чата (для корректных greeting-
+            // плейсхолдеров и currentPersona-синхронизации ниже), так что
+            // всё равно тянем список чатов персонажа и находим нужный,
+            // вместо полноценного резолва дефолтного.
+            const chats = await fetchCharacterChats(id);
+            chat = chats.find(c => c.id === explicitChatId);
+            if (!chat) throw new Error('Chat not found');
+        } else {
+            chat = await _resolveOrCreateChatForCharacter(id);
+        }
+    } catch (e) {
+        if (e.message === 'NO_PERSONA_CONNECTED') {
+            showCustomAlert('Connect a persona to this character first, then open it again.');
+        } else {
+            console.error('Error loading character:', e);
+            showCustomAlert('Load error: ' + e.message);
+        }
+        return;
+    }
+
+    currentCharacter = character;
+    currentChatId = chat.id;
+
+    // Чат жёстко привязан к персоне (persona_id на чате, не глобальный
+    // "текущий выбор") — синхронизируем currentPersona под ЭТОТ чат перед
+    // тем как что-либо, зависящее от неё (greeting-плейсхолдеры, message
+    // avatar/name), успеет отрендериться. Без этого шага открытие чужого
+    // чата с другой персоной подставило бы устаревшее глобальное значение.
+    if (chat.persona_id && currentPersona?.id !== chat.persona_id) {
+        try {
+            const personas = await fetchPersonas();
+            const chatPersona = personas.find(p => p.id === chat.persona_id);
+            if (chatPersona) currentPersona = chatPersona;
+        } catch (e) {
+            console.error('Error resolving chat persona:', e);
+        }
+    }
+
+    const history = await fetchChatHistory(chat.id);
+    chatHistory = history || [];
+    if (typeof loadDraftIntoInput === 'function') loadDraftIntoInput();
+
+    const chatCharAvatar = document.getElementById('chatCharAvatar');
+    const chatCharName = document.getElementById('chatCharName');
+    if (chatCharName) chatCharName.textContent = character.name;
+    if (userInput) userInput.placeholder = `Write to ${character.name}…`;
+    if (chatCharAvatar) {
+        const src = character.has_avatar
+            ? avatarUrl(character.id)
+            : defaultAvatarUrl(character.default_avatar);
+        chatCharAvatar.innerHTML = `<img src="${src}" alt="${character.name}">`;
+        chatCharAvatar.onclick = () => openAvatarModal(src);
+    }
+
+    const clearBtn = document.getElementById('clearHistoryBtn');
+    if (clearBtn) {
+        clearBtn.classList.remove('hidden');
+        clearBtn.classList.add('flex');
+    }
+
+    const chatMessagesInner = document.getElementById('chatMessagesInner');
+    chatMessagesInner.innerHTML = '';
+
+    if (chatHistory.length > 0) {
+        const firstMsg = chatHistory[0];
+        if (firstMsg && !firstMsg.isUser) {
+            const personaName = currentPersona ? currentPersona.name : 'User';
+            const fillPlaceholders = (t) => t
+                .replace(/\{\{char\}\}/g, character.name)
+                .replace(/\{\{user\}\}/g, personaName)
+                .replace(/{char}/g, character.name)
+                .replace(/{user}/g, personaName);
+
+            if (firstMsg.versions?.length) {
+                firstMsg.versions = firstMsg.rawVersions.map(fillPlaceholders);
+                firstMsg.text = firstMsg.versions[firstMsg.activeVersion] ?? firstMsg.versions[0];
+            } else if (chatHistory.length === 1 && (character.alternate_greetings || []).length > 0) {
+                const rawVersions = [
+                    character.first_mes,
+                    ...(character.alternate_greetings || [])
+                ].filter(t => t && t.trim());
+                const versions = rawVersions.map(fillPlaceholders);
+                const matchedIndex = versions.indexOf(firstMsg.text);
+                firstMsg.versions = versions;
+                firstMsg.rawVersions = rawVersions;
+                firstMsg.activeVersion = matchedIndex >= 0 ? matchedIndex : 0;
+                firstMsg.text = versions[firstMsg.activeVersion];
+            } else if (character.first_mes) {
+                firstMsg.text = fillPlaceholders(character.first_mes);
+            }
+            saveChatHistory();
+        }
+        chatHistory.forEach((msg, index) => {
+            addMessage(msg.text, msg.isUser, index);
+        });
+    } else {
+        const greetingMsg = _buildGreetingMessage(character, currentPersona);
+        if (greetingMsg) {
+            addMessage(greetingMsg.text, false, 0);
+            chatHistory.push(greetingMsg);
+            saveChatHistory();
+        }
+    }
+
+    loadCharacterList();
+    updateSummaryBrowserBtn();
+    loadCharacterNotes(chat.id); // notes теперь per-chat, не per-character — см. routes/chats.py
+    switchView(restoreView);
+    updateTokenCount();
+    saveAppState();
+}
+
+// saveChatHistory/clearChatHistory теперь бьют по currentChatId, не по
+// character_id — notes и history оба переехали на уровень чата.
+function saveChatHistory() {
+    if (!currentChatId) return;
+    fetch(`${BASE_URL}/save_chat_history/${currentChatId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ history: chatHistory })
+    }).catch(error => console.error('Error saving history:', error));
+}
+
+function clearChatHistory() {
+    if (!currentChatId) return;
+    fetch(`${BASE_URL}/clear_chat_history/${currentChatId}`, { method: 'POST' })
+        .then(() => { chatHistory = []; reloadChat(); })
+        .catch(error => console.error('Error clearing history:', error));
+}
+
+// ── Подключение персон к персонажу (N:N), характерс-сторона ────────
+// Симметрично personas.js:renderPersonaConnectedCharacters, но здесь ещё
+// нужен способ ДОБАВИТЬ подключение (выбор из всех персон), а не только
+// смотреть/отключать уже подключённые — обычный select, без поиска, это
+// грубая версия.
+
+async function fetchCharacterPersonas(characterId) {
+    const r = await fetch(`${BASE_URL}/character/${characterId}/personas`);
+    return r.json();
+}
+
+async function renderCharacterConnectedPersonas(characterId) {
+    const container = document.getElementById('characterConnectedPersonas');
+    const select = document.getElementById('connectPersonaSelect');
+    if (!container) return;
+
+    if (!characterId) {
+        container.innerHTML = '';
+        if (select) select.innerHTML = '';
+        return;
+    }
+
+    container.innerHTML = '<div class="loader-spinner"></div>';
+    try {
+        const [connected, allPersonas] = await Promise.all([
+            fetchCharacterPersonas(characterId),
+            fetchPersonas()
+        ]);
+
+        if (!connected.length) {
+            container.innerHTML = '<div class="empty-state-small">No personas connected yet</div>';
+        } else {
+            container.innerHTML = connected.map(p => `
+                <div class="connected-chip" data-persona-id="${p.id}">
+                    <span>${p.name}</span>
+                    <button class="chip-remove-btn" onclick="disconnectCharacterFromPersona(${characterId}, ${p.id})">×</button>
+                </div>
+            `).join('');
+        }
+
+        if (select) {
+            const connectedIds = new Set(connected.map(p => p.id));
+            const selectable = allPersonas.filter(p => !connectedIds.has(p.id));
+            select.innerHTML = selectable.length
+                ? selectable.map(p => `<option value="${p.id}">${p.name}</option>`).join('')
+                : '<option value="" disabled selected>No more personas to connect</option>';
+        }
+    } catch (e) {
+        console.error('Error loading connected personas:', e);
+        container.innerHTML = '';
+    }
+}
+
+function disconnectCharacterFromPersona(characterId, personaId) {
+    fetch(`${BASE_URL}/disconnect_persona`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ character_id: characterId, persona_id: personaId })
+    }).then(r => r.json()).then(data => {
+        if (data.success) {
+            renderCharacterConnectedPersonas(characterId);
+        } else {
+            showCustomAlert('Disconnect error');
+        }
+    }).catch(e => showCustomAlert('Error: ' + e));
+}
+
+function connectPersonaToCurrentCharacter() {
+    if (!editingCharacterId) {
+        showCustomAlert('Save the character first, then connect personas to it.');
+        return;
+    }
+    const select = document.getElementById('connectPersonaSelect');
+    const personaId = select ? parseInt(select.value, 10) : null;
+    if (!personaId) return;
+
+    fetch(`${BASE_URL}/connect_persona`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ character_id: editingCharacterId, persona_id: personaId })
+    }).then(r => r.json()).then(data => {
+        if (data.success) {
+            renderCharacterConnectedPersonas(editingCharacterId);
+        } else {
+            showCustomAlert('Connect error');
+        }
+    }).catch(e => showCustomAlert('Error: ' + e));
+}

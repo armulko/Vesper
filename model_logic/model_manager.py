@@ -87,6 +87,7 @@ def load_llm():
         "--cache-type-k", LLM_KV_CACHE_TYPE,
         "--cache-type-v", LLM_KV_CACHE_TYPE,
         "--flash-attn", "on",
+        "--jinja",
         "--parallel", "1",
         "--host", "127.0.0.1",
         "--port", "8080",

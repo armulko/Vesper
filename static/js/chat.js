@@ -57,8 +57,8 @@ function addMessage(text, isUser = false, messageIndex = null) {
             : defaultAvatarUrl(currentPersona?.default_avatar);
     } else {
         imgSrc = currentCharacter?.has_avatar
-            ? characterAvatarUrl(currentCharacter.vesper.id)
-            : defaultAvatarUrl(currentCharacter?.vesper?.default_avatar);
+            ? characterAvatarUrl(currentCharacter.id)
+            : defaultAvatarUrl(currentCharacter?.default_avatar);
     }
 
     msgHeader.innerHTML = `
@@ -489,14 +489,9 @@ function _updateMessageTextInPlace(index) {
     }
 }
 
-function saveChatHistory() {
-    if (!currentCharacter) return;
-    fetch(`${BASE_URL}/save_chat_history/${currentCharacter.vesper.id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ history: chatHistory })
-    }).catch(error => console.error('Error saving history:', error));
-}
+// saveChatHistory перенесена в characters.js — теперь бьёт по currentChatId
+// (чат — отдельная сущность от персонажа), не по currentCharacter.vesper.id.
+// См. characters.js: loadCharacter/saveChatHistory/clearChatHistory.
 
 // Assembles the chara_card_v2 fields into a SillyTavern-style labeled block.
 // Models fine-tuned on RP data have seen this exact layout (Description/
@@ -530,10 +525,10 @@ async function streamChatResponse(botMsgIndex, existingContent = null) {
     if (currentCharacter) {
         // Card's own custom system_prompt (if the creator wrote one) leads —
         // it's meant to set tone/rules before anything else in the card.
-        if (currentCharacter.data.system_prompt && currentCharacter.data.system_prompt.trim()) {
-            systemPrompt += currentCharacter.data.system_prompt.trim() + '\n\n';
+        if (currentCharacter.system_prompt && currentCharacter.system_prompt.trim()) {
+            systemPrompt += currentCharacter.system_prompt.trim() + '\n\n';
         }
-        systemPrompt += buildCharacterCardBlock(currentCharacter.data);
+        systemPrompt += buildCharacterCardBlock(currentCharacter);
     }
     if (currentPersona) {
         const personaName = currentPersona.name || 'User';
@@ -541,7 +536,7 @@ async function streamChatResponse(botMsgIndex, existingContent = null) {
         if (currentPersona.description) systemPrompt += ` ${currentPersona.description}`;
     }
 
-    const characterName = currentCharacter ? currentCharacter.data.name : 'AI';
+    const characterName = currentCharacter ? currentCharacter.name : 'AI';
     const personaName = currentPersona ? currentPersona.name : 'User';
     const cmdRegex = /\/cmd\s+(.+)/;
     let oocCommand = null;
@@ -592,12 +587,16 @@ async function streamChatResponse(botMsgIndex, existingContent = null) {
     abortController = new AbortController();
 
     try {
-        const postHistoryInstructions = currentCharacter?.data?.post_history_instructions?.trim() || '';
+        const postHistoryInstructions = currentCharacter?.post_history_instructions?.trim() || '';
 
         const response = await fetch(`${BASE_URL}/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ systemPrompt, conversationHistory, personaName, characterName, oocCommand, characterNotes: _characterNotes, postHistoryInstructions }),
+            body: JSON.stringify({
+                systemPrompt, conversationHistory, personaName, characterName,
+                oocCommand, characterNotes: _characterNotes, postHistoryInstructions,
+                characterId: currentCharacter?.id ?? null,
+            }),
             signal: abortController.signal
         });
 
@@ -771,12 +770,12 @@ async function regenerateMessage(index) {
 
 function buildSuggestSystemPrompt() {
     const personaName = currentPersona ? currentPersona.name : 'User';
-    const characterName = currentCharacter.data.name;
+    const characterName = currentCharacter.name;
 
     let prompt = `You are ${personaName}.`;
     if (currentPersona?.description) prompt += ` ${currentPersona.description}`;
     prompt += `\n\nYou are talking with ${characterName}.`;
-    if (currentCharacter.data.description) prompt += ` ${currentCharacter.data.description}`;
+    if (currentCharacter.description) prompt += ` ${currentCharacter.description}`;
     prompt += `\n\nWrite a single short in-character reply as ${personaName}. Do not write for ${characterName}.`;
 
     return { prompt, personaName, characterName };
@@ -792,12 +791,12 @@ async function suggestUserMessage() {
     if (!currentCharacter) { showCustomAlert('Select a character first'); return; }
 
     const personaName = currentPersona ? currentPersona.name : 'User';
-    const characterName = currentCharacter.data.name;
+    const characterName = currentCharacter.name;
 
     let systemPrompt = `You are ${personaName}.`;
     if (currentPersona?.description) systemPrompt += ` ${currentPersona.description}`;
     systemPrompt += `\n\nYou are talking with ${characterName}.`;
-    if (currentCharacter.data.description) systemPrompt += ` ${currentCharacter.data.description}`;
+    if (currentCharacter.description) systemPrompt += ` ${currentCharacter.description}`;
 
     let conversationHistory = '';
     chatHistory.forEach(msg => {
@@ -860,7 +859,7 @@ async function suggestUserMessage() {
     } finally {
         suggestBtn.disabled = false;
         userInput.disabled = false;
-        userInput.placeholder = currentCharacter ? `Write to ${currentCharacter.data.name}…` : 'Write a message…';
+        userInput.placeholder = currentCharacter ? `Write to ${currentCharacter.name}…` : 'Write a message…';
     }
 }
 
